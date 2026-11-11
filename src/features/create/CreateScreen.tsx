@@ -33,6 +33,7 @@ export function CreateScreen({ engine }: Props) {
 
   const clearResult = () => {
     jobRef.current += 1;
+    setPending(false);
     setResult(null);
     setCopied(false);
     setMessage("");
