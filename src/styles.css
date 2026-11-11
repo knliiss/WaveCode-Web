@@ -331,8 +331,17 @@ img { display: block; max-width: 100%; }
 .output-empty > span { font-size: 11px; color: #a1a1a0; }
 .sample-lines { display: flex; align-items: center; gap: 7px; height: 61px; opacity: .38; }
 .sample-lines span {
-  width: 5px; border-radius: 30px; background: #686866;
-  height: calc(var(--up) * 1px);
+  position: relative; width: 5px; height: 64px;
+}
+.sample-lines span::before, .sample-lines span::after {
+  content: ""; position: absolute; left: 0; right: 0;
+  border-radius: 30px; background: #686866;
+}
+.sample-lines span::before {
+  bottom: calc(50% + 4px); height: calc(var(--up) * .53px);
+}
+.sample-lines span::after {
+  top: calc(50% + 4px); height: calc(var(--down) * .53px);
 }
 .output-footnote {
   color: #93938f; display: flex; gap: 7px; align-items: center;
