@@ -1,15 +1,12 @@
-import {
-  ArrowDownToLine, ArrowRight, Check, ClipboardPaste, Clock3,
-  Copy, Link2, LoaderCircle, MoveUpRight, ShieldCheck,
-} from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import type { GeneratedWaveCode, WaveCodeEngine } from "../../domain/wavecode";
 import { parseMoment, platformLabel, validateMusicLink } from "../../domain/music-url";
+import { copyPngImage } from "../../infrastructure/clipboard";
 import { downloadBytes, downloadSvg } from "../../infrastructure/download";
 
 interface Props { engine: WaveCodeEngine; }
 
-const BLINDING_LIGHTS = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
+type CopyState = "idle" | "copying" | "copied";
 
 export function CreateScreen({ engine }: Props) {
   const [link, setLink] = useState("");
@@ -17,9 +14,10 @@ export function CreateScreen({ engine }: Props) {
   const [result, setResult] = useState<GeneratedWaveCode | null>(null);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const jobRef = useRef(0);
+  const copyResetRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (!result) {
@@ -31,11 +29,14 @@ export function CreateScreen({ engine }: Props) {
     return () => URL.revokeObjectURL(url);
   }, [result]);
 
+  useEffect(() => () => window.clearTimeout(copyResetRef.current), []);
+
   const clearResult = () => {
     jobRef.current += 1;
+    window.clearTimeout(copyResetRef.current);
     setPending(false);
     setResult(null);
-    setCopied(false);
+    setCopyState("idle");
     setMessage("");
   };
 
@@ -46,6 +47,7 @@ export function CreateScreen({ engine }: Props) {
       setMessage(invalid);
       return;
     }
+
     let seconds: number | undefined;
     try {
       seconds = parseMoment(moment);
@@ -53,6 +55,7 @@ export function CreateScreen({ engine }: Props) {
       setMessage(error instanceof Error ? error.message : "Invalid timestamp.");
       return;
     }
+
     const job = ++jobRef.current;
     setPending(true);
     setMessage("");
@@ -61,7 +64,7 @@ export function CreateScreen({ engine }: Props) {
       const generated = await engine.generate(link.trim(), seconds);
       if (job !== jobRef.current) return;
       setResult(generated);
-      setMessage("Your WaveCode is ready. Save it as SVG or PNG.");
+      setCopyState("idle");
     } catch (error) {
       if (job !== jobRef.current) return;
       setResult(null);
@@ -83,32 +86,34 @@ export function CreateScreen({ engine }: Props) {
     }
   };
 
-  const copyLink = async () => {
-    if (!result) return;
+  const copyImage = async () => {
+    if (!result || copyState === "copying") return;
+    const job = jobRef.current;
+    setCopyState("copying");
+    setMessage("");
     try {
-      await navigator.clipboard.writeText(result.canonicalUrl);
-      setCopied(true);
-    } catch {
-      setMessage("Clipboard access was denied.");
+      await copyPngImage(result.png);
+      if (job !== jobRef.current) return;
+      window.clearTimeout(copyResetRef.current);
+      setCopyState("copied");
+      copyResetRef.current = window.setTimeout(() => setCopyState("idle"), 2400);
+    } catch (error) {
+      if (job !== jobRef.current) return;
+      setCopyState("idle");
+      setMessage(error instanceof Error ? error.message : "Unable to copy the image. Save the PNG instead.");
     }
   };
 
   return (
     <section className="create-layout" aria-labelledby="create-heading">
       <div className="heading-block">
-        <div className="eyebrow"><span className="eyebrow-line" /> THE GENERATOR <span className="tiny-index">/ 02</span></div>
         <h1 id="create-heading">Make it <span>yours.</span></h1>
-        <p>Turn any supported music link into a physical, shareable code.</p>
       </div>
 
       <div className="creator-panel">
-        <div className="panel-index">
-          <span>01 — YOUR MUSIC</span><span className="panel-index-dot" />
-        </div>
         <form className="creator-form" onSubmit={(event) => void generate(event)} noValidate>
           <label htmlFor="track-link">Track link</label>
           <div className="input-wrap">
-            <Link2 size={19} aria-hidden="true" />
             <input
               id="track-link"
               type="url"
@@ -119,19 +124,17 @@ export function CreateScreen({ engine }: Props) {
               value={link}
               onChange={(event) => { setLink(event.target.value); clearResult(); }}
             />
-            <button type="button" className="input-paste" onClick={() => void paste()} aria-label="Paste link from clipboard" title="Paste from clipboard">
-              <ClipboardPaste size={18} />
+            <button type="button" className="input-paste" onClick={() => void paste()} aria-label="Paste link from clipboard">
+              Paste
             </button>
           </div>
-          <div className="form-hint">YouTube Music, Spotify, Apple Music + 4 more</div>
 
           <div className="moment-row">
             <div className="moment-description">
               <label htmlFor="track-moment">Start at a moment</label>
-              <span>Optional · seconds or mm:ss</span>
+              <span className="visually-hidden">Optional. Seconds or minutes and seconds.</span>
             </div>
             <div className="moment-field">
-              <Clock3 size={16} aria-hidden="true" />
               <input
                 id="track-moment"
                 type="text"
@@ -145,21 +148,17 @@ export function CreateScreen({ engine }: Props) {
           </div>
 
           <button type="submit" className="create-submit" disabled={pending}>
-            {pending ? <><LoaderCircle className="spin" size={19} /> Creating your code…</> : <>Create WaveCode <ArrowRight size={19} /></>}
-          </button>
-          <button type="button" className="example-link" onClick={() => { setLink(BLINDING_LIGHTS); setMoment(""); clearResult(); }}>
-            Try an example <MoveUpRight size={14} /> <span>Blinding Lights — The Weeknd</span>
+            {pending ? "Creating…" : "Create WaveCode"}
           </button>
         </form>
       </div>
 
       <div className={"output-panel " + (result ? "generated" : "")}>
-        <div className="panel-index"><span>02 — THE RESULT</span><span>{result ? "READY TO SAVE" : "AWAITING INPUT"}</span></div>
         <div className="output-stage">
           {previewUrl ? (
             <>
               <img src={previewUrl} alt="Generated 36-column WaveCode with capsule-shaped rails" />
-              <div className="output-meta"><span>{platformLabel(result?.canonicalUrl ?? "")}</span><span>WAVECODE V1</span></div>
+              <div className="output-meta"><span>{platformLabel(result?.canonicalUrl ?? "")}</span></div>
             </>
           ) : (
             <div className="output-empty">
@@ -168,28 +167,22 @@ export function CreateScreen({ engine }: Props) {
                   <span key={i} style={{ "--i": i, "--up": 13 + Math.abs(7 - i) * 3, "--down": 16 + (i % 5) * 7 } as CSSProperties} />
                 ))}
               </div>
-              <span>Your sound, in 36 columns.</span>
             </div>
           )}
         </div>
-        {result ? (
+        {result && (
           <div className="export-actions">
-            <button type="button" className="export-primary" onClick={() => downloadSvg(result.svg, "wavecode.svg")}>
-              <ArrowDownToLine size={17} /> Save SVG
-            </button>
-            <button type="button" onClick={() => downloadBytes(result.png, "wavecode.png", "image/png")}>
-              <ArrowDownToLine size={17} /> PNG
-            </button>
-            <button type="button" aria-label="Copy encoded music link" onClick={() => void copyLink()}>
-              {copied ? <Check size={18} /> : <Copy size={18} />}
+            <button type="button" className="export-primary" onClick={() => downloadSvg(result.svg, "wavecode.svg")}>Save SVG</button>
+            <button type="button" onClick={() => downloadBytes(result.png, "wavecode.png", "image/png")}>Save PNG</button>
+            <button type="button" className="export-copy" disabled={copyState === "copying"} aria-label={copyState === "copied" ? "Image copied" : "Copy WaveCode image"} onClick={() => void copyImage()}>
+              {copyState === "copied" ? "Copied" : copyState === "copying" ? "Copying…" : "Copy image"}
             </button>
           </div>
-        ) : (
-          <div className="output-footnote"><ShieldCheck size={15} /> Built with the original Rust WaveCode engine</div>
         )}
       </div>
 
-      {message && <div className={"form-message " + (result ? "form-success" : "")} role="status">{message}</div>}
+      <span className="visually-hidden" role="status">{copyState === "copied" ? "WaveCode image copied to clipboard." : ""}</span>
+      {message && <div className="form-message" role="alert">{message}</div>}
     </section>
   );
 }
