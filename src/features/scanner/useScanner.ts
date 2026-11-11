@@ -299,9 +299,12 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     };
   }, [selected, releaseCamera]);
 
-  useEffect(() => () => {
-    isMounted.current = false;
-    releaseCamera();
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      releaseCamera();
+    };
   }, [releaseCamera]);
 
   return {
