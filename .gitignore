@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.cache/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.env*
+!.env.example
+src/generated/wavecode/
