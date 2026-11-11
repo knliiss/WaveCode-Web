@@ -61,32 +61,143 @@ export async function captureFrame(video: HTMLVideoElement, mode: CaptureMode): 
   return toPng(canvas);
 }
 
-export async function captureFile(file: File): Promise<Uint8Array[]> {
-  if (!file.type.startsWith("image/")) throw new Error("Choose a PNG or JPEG image.");
-  if (file.size > 30 * 1024 * 1024) throw new Error("The image is too large (30 MB max).");
+export interface PhotoCapture {
+  bytes: Uint8Array;
+  pass: number;
+  total: number;
+}
 
-  const bitmap = await createImageBitmap(file);
+export function photoScanAreas(sourceWidth: number, sourceHeight: number): CropArea[] {
+  if (!(sourceWidth > 0 && sourceHeight > 0)) {
+    throw new Error("Invalid image dimensions.");
+  }
+  const maxDimension = Math.max(sourceWidth, sourceHeight);
+  const fromRegion = (sx: number, sy: number, sw: number, sh: number, limit: number): CropArea => {
+    const scale = Math.min(1, limit / Math.max(sw, sh));
+    return {
+      sx: Math.round(sx), sy: Math.round(sy),
+      sw: Math.round(sw), sh: Math.round(sh),
+      width: Math.max(1, Math.round(sw * scale)),
+      height: Math.max(1, Math.round(sh * scale)),
+    };
+  };
+
+  const areas = [fromRegion(0, 0, sourceWidth, sourceHeight, 1800)];
+  if (maxDimension > 1800) {
+    // A high-detail full-frame attempt improves thin bars and JPEG photographs.
+    areas.push(fromRegion(0, 0, sourceWidth, sourceHeight, 2600));
+  }
+  if (maxDimension > 2600) {
+    // Small marks in a large camera photo can disappear when downscaled.
+    // Overlapping tiles preserve detail while retaining the official Rust
+    // decoder's 20-megapixel input limit, without server-side processing.
+    const sw = Math.round(sourceWidth * 0.65);
+    const sh = Math.round(sourceHeight * 0.65);
+    for (const [fx, fy] of [
+      [0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0.5],
+    ] as const) {
+      areas.push(fromRegion(
+        (sourceWidth - sw) * fx,
+        (sourceHeight - sh) * fy,
+        sw, sh, 1850,
+      ));
+    }
+  }
+  return areas;
+}
+
+async function openPhoto(file: File): Promise<{
+  image: ImageBitmap | HTMLImageElement;
+  width: number;
+  height: number;
+  release(): void;
+}> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      return {
+        image: bitmap,
+        width: bitmap.width, height: bitmap.height,
+        release: () => bitmap.close(),
+      };
+    } catch {
+      // A few iOS/Safari versions cannot decode all photo formats as
+      // ImageBitmap, even when their native <img> element supports them.
+    }
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  const image = new Image();
   try {
-    if (bitmap.width * bitmap.height > 80_000_000) {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("This photo format cannot be decoded by your browser."));
+      image.src = objectUrl;
+    });
+    return {
+      image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      release: () => URL.revokeObjectURL(objectUrl),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+}
+
+async function photoBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  const encode = (type: string, quality?: number) => new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Unable to process this photo.")),
+      type, quality);
+  });
+
+  // The Rust scanner accepts PNG/JPEG but enforces a 16 MiB input limit.
+  // High-resolution noisy photos can exceed it as lossless PNG. Use a
+  // high-quality JPEG fallback rather than silently missing an actual code.
+  let blob = await encode("image/png");
+  if (blob.size > 15 * 1024 * 1024) blob = await encode("image/jpeg", 0.96);
+  if (blob.size > 16 * 1024 * 1024) {
+    throw new Error("This image is too detailed to scan on this device.");
+  }
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+export async function* captureFile(file: File): AsyncGenerator<PhotoCapture> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Choose a supported image file.");
+  }
+  if (file.size > 30 * 1024 * 1024) {
+    throw new Error("The image is too large (30 MB max).");
+  }
+  const photo = await openPhoto(file);
+  try {
+    if (photo.width * photo.height > 80_000_000) {
       throw new Error("The image is too large to process on this device.");
     }
-
-    const shots: Uint8Array[] = [];
-    for (const limit of [1800, 2600]) {
-      if (limit === 2600 && Math.max(bitmap.width, bitmap.height) <= 1800) break;
-      const scale = Math.min(1, limit / Math.max(bitmap.width, bitmap.height));
-      const width = Math.max(1, Math.round(bitmap.width * scale));
-      const height = Math.max(1, Math.round(bitmap.height * scale));
+    const areas = photoScanAreas(photo.width, photo.height);
+    for (const [index, area] of areas.entries()) {
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = area.width;
+      canvas.height = area.height;
       const context = canvas.getContext("2d", { alpha: false });
       if (!context) throw new Error("2D canvas rendering is unavailable.");
-      context.drawImage(bitmap, 0, 0, width, height);
-      shots.push(await toPng(canvas));
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(
+        photo.image,
+        area.sx, area.sy, area.sw, area.sh,
+        0, 0, area.width, area.height,
+      );
+      yield {
+        bytes: await photoBytes(canvas),
+        pass: index + 1,
+        total: areas.length,
+      };
+      canvas.width = 0;
+      canvas.height = 0;
     }
-    return shots;
   } finally {
-    bitmap.close();
+    photo.release();
   }
 }
