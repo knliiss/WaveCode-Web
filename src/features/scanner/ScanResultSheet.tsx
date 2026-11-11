@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LocatedWaveCode } from "../../domain/wavecode";
 import { isSupportedMusicUrl, musicIdentity, platformLabel } from "../../domain/music-url";
 
@@ -12,6 +12,13 @@ interface Props {
 export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
   const [selection, setSelection] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
   const code = codes[selection];
   if (!code || !isSupportedMusicUrl(code.url)) return null;
 
