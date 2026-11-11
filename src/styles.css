@@ -140,6 +140,7 @@ img { display: block; max-width: 100%; }
   border: 1px solid rgba(255,255,255,.21); backdrop-filter: blur(10px);
 }
 .glass-tool.selected { color: #111; background: white; }
+.exposure-tool { font-size: 12px; font-weight: 800; letter-spacing: -.04em; }
 .finder {
   position: absolute; z-index: 2; top: 48%; left: 50%;
   transform: translate(-50%,-50%); width: min(84%,610px); height: clamp(100px,26%,164px);
