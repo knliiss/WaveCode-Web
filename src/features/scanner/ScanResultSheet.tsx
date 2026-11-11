@@ -1,5 +1,5 @@
 import { ArrowRight, ArrowUpRight, Check, Copy, RotateCcw, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LocatedWaveCode } from "../../domain/wavecode";
 import { isSupportedMusicUrl, musicIdentity, platformLabel } from "../../domain/music-url";
 
@@ -10,8 +10,13 @@ interface Props {
 }
 
 export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [selection, setSelection] = useState(0);
   const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    // Announce the decoded result to keyboard and screen-reader users.
+    headingRef.current?.focus({ preventScroll: true });
+  }, []);
   const code = codes[selection];
   if (!code || !isSupportedMusicUrl(code.url)) return null;
   const url = code.url;
@@ -31,7 +36,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
         <span className="result-ok"><Check size={15} strokeWidth={3} /> CODE FOUND</span>
         <button className="sheet-dismiss" type="button" onClick={onDismiss} aria-label="Close result"><X size={19} /></button>
       </div>
-      <h2 id="result-title">There's your<br /><em>music.</em></h2>
+      <h2 id="result-title" tabIndex={-1} ref={headingRef}>There's your<br /><em>music.</em></h2>
       {codes.length > 1 && (
         <div className="result-choices" role="group" aria-label="Choose detected WaveCode">
           {codes.map((item, index) => (
