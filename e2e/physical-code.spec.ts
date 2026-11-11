@@ -3,7 +3,11 @@ import { readFileSync } from "node:fs";
 
 const TRACK = "https://open.spotify.com/track/0123456789abcdefghijkl";
 
-test("a rotated, light-on-dark physical-style tag with nearby decoration still scans", async ({ page }) => {
+for (const variant of [
+  { name: "a rotated, light-on-dark physical-style tag with decoration still scans", fragmented: false },
+  { name: "a rotated, fragmented physical-style tag is normalized and decoded", fragmented: true },
+]) {
+test(variant.name, async ({ page }) => {
   await page.goto("/");
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("button", { name: "Create" }).click();
@@ -18,7 +22,7 @@ test("a rotated, light-on-dark physical-style tag with nearby decoration still s
   const path = await download.path();
   if (!path) throw new Error("No exported WaveCode PNG available.");
 
-  const photo = await page.evaluate(async (bytes: number[]) => {
+  const photo = await page.evaluate(async ({ bytes, fragmented }: { bytes: number[]; fragmented: boolean }) => {
     const source = new Image();
     const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "image/png" }));
     try {
@@ -40,6 +44,11 @@ test("a rotated, light-on-dark physical-style tag with nearby decoration still s
         pixels.data[i + 2] = 255 - pixels.data[i + 2]!;
       }
       markContext.putImageData(pixels, 0, 0);
+
+      if (fragmented) {
+        markContext.fillStyle = "#111114";
+        markContext.fillRect(0, 106, mark.width, 3);
+      }
 
       const photo = document.createElement("canvas");
       photo.width = 1080;
@@ -77,7 +86,7 @@ test("a rotated, light-on-dark physical-style tag with nearby decoration still s
     } finally {
       URL.revokeObjectURL(url);
     }
-  }, Array.from(readFileSync(path)));
+  }, { bytes: Array.from(readFileSync(path)), fragmented: variant.fragmented });
 
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("button", { name: "Scan" }).click();
@@ -90,3 +99,4 @@ test("a rotated, light-on-dark physical-style tag with nearby decoration still s
   await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
   await expect(page.getByRole("link", { name: "Open track" })).toHaveAttribute("href", TRACK);
 });
+}
