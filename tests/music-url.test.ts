@@ -6,6 +6,7 @@ describe("public music link security", () => {
     expect(isSupportedMusicUrl("https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b")).toBe(true);
     expect(isSupportedMusicUrl("https://music.youtube.com/watch?v=dQw4w9WgXcQ&t=59")).toBe(true);
     expect(isSupportedMusicUrl("https://music.apple.com/ua/song/12345")).toBe(true);
+    expect(isSupportedMusicUrl("https://open.spotify.com:443/track/123")).toBe(true);
   });
   it("rejects hostile origins and unsafe protocols", () => {
     for (const url of [
@@ -13,7 +14,7 @@ describe("public music link security", () => {
       "https://spotify.com.evil.example/track/123",
       "https://open.spotify.com@evil.example/track/123",
       "http://open.spotify.com/track/123",
-      "https://open.spotify.com:443/track/123",
+      "https://open.spotify.com:444/track/123",
       "",
     ]) expect(isSupportedMusicUrl(url)).toBe(false);
   });

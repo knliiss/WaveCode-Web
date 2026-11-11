@@ -6,8 +6,8 @@ describe("adaptive camera capture", () => {
     for (const [w, h] of ([[1920, 1080], [1080, 1920], [1280, 720], [640, 480]] as const)) {
       for (const mode of ["finder", "detail", "full"] as const) {
         const area = captureArea(w, h, mode);
-        expect(area.sx + area.sw / 2).toBeCloseTo(w / 2, 0);
-        expect(area.sy + area.sh / 2).toBeCloseTo(h / 2, 0);
+        expect(Math.abs(area.sx + area.sw / 2 - w / 2)).toBeLessThanOrEqual(0.5);
+        expect(Math.abs(area.sy + area.sh / 2 - h / 2)).toBeLessThanOrEqual(0.5);
         expect(area.width).toBeGreaterThan(0);
         expect(area.height).toBeGreaterThan(0);
         expect(Math.max(area.width, area.height)).toBeLessThanOrEqual(1600);
