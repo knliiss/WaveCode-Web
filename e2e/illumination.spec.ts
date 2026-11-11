@@ -18,7 +18,7 @@ for (const lightInk of [false, true]) {
     const sourcePath = await download.path();
     if (!sourcePath) throw new Error("Could not download WaveCode PNG");
 
-    const photo = await page.evaluate(async (bytes: number[], inkIsLight: boolean) => {
+    const photo = await page.evaluate(async ({ bytes, inkIsLight }: { bytes: number[]; inkIsLight: boolean }) => {
       const source = new Image();
       const sourceUrl = URL.createObjectURL(
         new Blob([new Uint8Array(bytes)], { type: "image/png" }),
@@ -62,7 +62,7 @@ for (const lightInk of [false, true]) {
       } finally {
         URL.revokeObjectURL(sourceUrl);
       }
-    }, Array.from(readFileSync(sourcePath)), lightInk);
+    }, { bytes: Array.from(readFileSync(sourcePath)), inkIsLight: lightInk });
 
     await page.getByRole("navigation", { name: "Primary navigation" })
       .getByRole("button", { name: "Scan" }).click();
