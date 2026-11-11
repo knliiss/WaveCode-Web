@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("supported cameras offer reversible low-glare exposure without changing the scanning flow", async ({ page, context }, testInfo) => {
-  test.skip(testInfo.project.name === "mobile-webkit", "Physical iOS camera capability support varies.");
+test.skip(({ browserName }) => browserName === "webkit", "Physical iOS camera capability support varies.");
+
+test("supported cameras offer reversible low-glare exposure without changing the scanning flow", async ({ page, context }) => {
   await context.grantPermissions(["camera"]);
 
   await page.addInitScript(() => {
