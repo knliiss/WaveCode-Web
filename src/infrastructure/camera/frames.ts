@@ -9,13 +9,17 @@ export interface CropArea {
   height: number;
 }
 
-export function captureArea(videoWidth: number, videoHeight: number, mode: CaptureMode): CropArea {
+export function captureArea(videoWidth: number, videoHeight: number, mode: CaptureMode, viewWidth = videoWidth, viewHeight = videoHeight): CropArea {
   if (!(videoWidth > 0) || !(videoHeight > 0)) {
     throw new Error("Camera is not ready.");
   }
+  const viewAspect = viewWidth > 0 && viewHeight > 0 ? viewWidth / viewHeight : videoWidth / videoHeight;
+  const sensorAspect = videoWidth / videoHeight;
+  const visibleWidth = mode === "full" ? videoWidth : sensorAspect > viewAspect ? videoHeight * viewAspect : videoWidth;
+  const visibleHeight = mode === "full" ? videoHeight : sensorAspect < viewAspect ? videoWidth / viewAspect : videoHeight;
   const fraction: readonly [number, number] = mode === "finder" ? [0.96, 0.62] : mode === "detail" ? [0.78, 0.4] : [1, 1];
-  const sw = Math.round(videoWidth * fraction[0]);
-  const sh = Math.round(videoHeight * fraction[1]);
+  const sw = Math.round(visibleWidth * fraction[0]);
+  const sh = Math.round(visibleHeight * fraction[1]);
   const longest = mode === "detail" ? 1560 : mode === "full" ? 1600 : 1440;
   const factor = Math.min(1, longest / Math.max(sw, sh));
   const width = Math.max(1, Math.round(sw * factor));
@@ -42,7 +46,8 @@ async function toPng(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 }
 
 export async function captureFrame(video: HTMLVideoElement, mode: CaptureMode): Promise<Uint8Array> {
-  const area = captureArea(video.videoWidth, video.videoHeight, mode);
+  const rect = video.getBoundingClientRect();
+  const area = captureArea(video.videoWidth, video.videoHeight, mode, rect.width, rect.height);
   const canvas = document.createElement("canvas");
   canvas.width = area.width;
   canvas.height = area.height;
