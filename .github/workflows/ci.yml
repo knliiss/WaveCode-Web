@@ -23,8 +23,16 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         with:
           name: wavecode-web-dist
           path: dist/
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wavecode-browser-tests
+          path: test-results/
+          if-no-files-found: ignore

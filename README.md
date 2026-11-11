@@ -77,6 +77,8 @@ npm run sdk:build
 npm run dev
 \`\`\`
 
+For end-to-end tests, install Chromium with `npx playwright install chromium`, then run `npm run build && npm run test:e2e`.
+
 The UI is served by Vite. **Live camera access requires HTTPS or localhost**;
 a phone visiting a private HTTP LAN address may not be permitted to use its
 camera. File scanning and creation can still work when camera access is unavailable.
