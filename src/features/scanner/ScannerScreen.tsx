@@ -41,6 +41,17 @@ export function ScannerScreen({ engine, active }: Props) {
                 <span className="live-dot" /><span>LIVE</span>
               </div>
               <div className="scan-tools">
+                {view.exposureSupported && (
+                  <button
+                    type="button"
+                    className={"glass-tool exposure-tool " + (view.exposureReduced ? "selected" : "")}
+                    aria-label={view.exposureReduced ? "Restore camera exposure" : "Reduce camera exposure"}
+                    aria-pressed={view.exposureReduced}
+                    onClick={() => void scanner.toggleExposure()}
+                  >
+                    EV−
+                  </button>
+                )}
                 {view.torchSupported && (
                   <button type="button" className={"glass-tool " + (view.torchEnabled ? "selected" : "")} aria-label={view.torchEnabled ? "Turn flashlight off" : "Turn flashlight on"} onClick={() => void scanner.toggleTorch()}>
                     <Flashlight size={18} />
