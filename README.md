@@ -25,7 +25,7 @@ Rust code compiled to WebAssembly**, in a Web Worker.
 - **Live camera scanning:** rear camera preferred; multiple crop/scale strategies,
   adaptive scan cadence, orientation handling via the official decoder, and
   torch/rear-camera switching where available.
-- **Photo scanning:** PNG/JPEG/WebP file upload, multiple detail passes,
+- **Photo scanning:** mobile photo upload, progressive high-detail passes, overlapping tile search for tiny codes,
   code candidates presented individually when several are found.
 - **Code creation:** support for YouTube Music, Spotify, Apple Music, Deezer,
   TIDAL, Qobuz and Amazon Music; optional timestamp; genuine 36-column V1

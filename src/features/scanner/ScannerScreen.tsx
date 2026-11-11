@@ -101,7 +101,7 @@ export function ScannerScreen({ engine, active }: Props) {
         className="visually-hidden"
         aria-label="Choose a WaveCode photo"
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/*"
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           event.currentTarget.value = "";
