@@ -25,6 +25,18 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end browser checks
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wavecode-web-browser-tests
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: wavecode-web-dist
