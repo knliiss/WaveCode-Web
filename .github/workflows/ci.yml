@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -24,7 +28,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Install browser
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install chromium webkit
       - name: End-to-end browser checks
         run: npm run test:e2e
       - uses: actions/upload-artifact@v4
