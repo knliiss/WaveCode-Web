@@ -307,6 +307,24 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     };
   }, [releaseCamera]);
 
+  useEffect(() => {
+    const pauseInBackground = () => {
+      if (!document.hidden || !streamRef.current) return;
+      releaseCamera();
+      if (isMounted.current) {
+        setView((previous) => ({
+          ...previous,
+          phase: "idle",
+          status: "Camera paused while the app was in the background. Tap Open camera to resume.",
+          torchEnabled: false,
+          torchSupported: false,
+        }));
+      }
+    };
+    document.addEventListener("visibilitychange", pauseInBackground);
+    return () => document.removeEventListener("visibilitychange", pauseInBackground);
+  }, [releaseCamera]);
+
   return {
     videoRef, view,
     start, stop, switchCamera, toggleTorch, scanPhoto, dismissResult,
