@@ -14,6 +14,11 @@ describe("adaptive camera capture", () => {
       }
     }
   });
+  it("aligns finder capture with an object-cover portrait view", () => {
+    const area = captureArea(1920, 1080, "finder", 360, 430);
+    expect(area.sw).toBeLessThan(1000);
+    expect(area.sx).toBeGreaterThan(400);
+  });
   it("does not upscale low resolution sensor frames", () => {
     expect(captureArea(320, 240, "full").width).toBe(320);
   });
