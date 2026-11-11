@@ -3,7 +3,7 @@ import { captureArea } from "../src/infrastructure/camera/frames";
 
 describe("adaptive camera capture", () => {
   it("keeps the optical center on different aspect ratios", () => {
-    for (const [w, h] of [[1920, 1080], [1080, 1920], [1280, 720], [640, 480]]) {
+    for (const [w, h] of ([[1920, 1080], [1080, 1920], [1280, 720], [640, 480]] as const)) {
       for (const mode of ["finder", "detail", "full"] as const) {
         const area = captureArea(w, h, mode);
         expect(area.sx + area.sw / 2).toBeCloseTo(w / 2, 0);
