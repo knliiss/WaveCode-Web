@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocatedWaveCode, ScanSource, WaveCodeEngine } from "../../domain/wavecode";
 import { isSupportedMusicUrl } from "../../domain/music-url";
 import { captureFile, captureFrame, type CaptureMode } from "../../infrastructure/camera/frames";
+import { applyCameraAdjustments, planExposureReduction, type ExposureCapabilities, type ExposurePlan, type ExposureSettings } from "../../infrastructure/camera/exposure";
 import { originalPhotoBytes } from "../../infrastructure/camera/original-photo";
 
 export type ScanPhase =
@@ -14,6 +15,8 @@ export interface ScanView {
   facing: "environment" | "user";
   torchSupported: boolean;
   torchEnabled: boolean;
+  exposureSupported: boolean;
+  exposureReduced: boolean;
   attempts: number;
 }
 
@@ -24,6 +27,8 @@ const initial: ScanView = {
   facing: "environment",
   torchSupported: false,
   torchEnabled: false,
+  exposureSupported: false,
+  exposureReduced: false,
   attempts: 0,
 };
 
@@ -46,10 +51,6 @@ interface TorchCapabilities extends MediaTrackCapabilities {
   torch?: boolean;
 }
 
-interface TorchConstraint extends MediaTrackConstraintSet {
-  torch?: boolean;
-}
-
 const delay = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 function codeCandidates(found: LocatedWaveCode[]): LocatedWaveCode[] {
@@ -64,6 +65,7 @@ function codeCandidates(found: LocatedWaveCode[]): LocatedWaveCode[] {
 export function useScanner(engine: WaveCodeEngine, selected: boolean) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const exposurePlanRef = useRef<ExposurePlan | null>(null);
   const cycleRef = useRef(0);
   const isMounted = useRef(true);
   const [view, setView] = useState<ScanView>(initial);
@@ -72,6 +74,7 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     cycleRef.current += 1;
     const stream = streamRef.current;
     streamRef.current = null;
+    exposurePlanRef.current = null;
     stream?.getTracks().forEach((track) => track.stop());
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
@@ -87,6 +90,8 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       status: codes.length > 1 ? "Multiple WaveCodes found. Choose a result." : "WaveCode decoded.",
       torchEnabled: false,
       torchSupported: false,
+      exposureReduced: false,
+      exposureSupported: false,
     }));
   }, [releaseCamera]);
 
@@ -170,6 +175,8 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       status: "Preparing your camera and decoding engine…",
       torchSupported: false,
       torchEnabled: false,
+      exposureSupported: false,
+      exposureReduced: false,
     }));
     let stream: MediaStream | null = null;
     try {
@@ -206,11 +213,17 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       await video.play();
       if (cycleRef.current !== cycle || !isMounted.current) return;
       const [track] = stream.getVideoTracks();
-      const supportsTorch = !!(track?.getCapabilities?.() as TorchCapabilities | undefined)?.torch;
+      const capabilities = track?.getCapabilities?.() as (TorchCapabilities & ExposureCapabilities) | undefined;
+      const supportsTorch = !!capabilities?.torch;
+      const plan = planExposureReduction(
+        capabilities, track?.getSettings?.() as ExposureSettings | undefined,
+      );
+      exposurePlanRef.current = plan;
       setView((previous) => ({
         ...previous,
         phase: "scanning",
         torchSupported: supportsTorch,
+        exposureSupported: plan !== null,
         status: "Looking for the two-rail WaveCode pattern…",
       }));
       void scanLoop(cycle);
@@ -219,7 +232,7 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       if (cycleRef.current !== cycle || !isMounted.current) return;
       releaseCamera();
       setView((previous) => ({
-        ...previous, phase: "error", torchSupported: false,
+        ...previous, phase: "error", torchSupported: false, exposureSupported: false,
         status: cameraMessage(error),
       }));
     }
@@ -229,6 +242,7 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     releaseCamera();
     setView((previous) => ({
       ...previous, phase: "idle", torchEnabled: false, torchSupported: false,
+      exposureReduced: false, exposureSupported: false,
       status: "Position a WaveCode inside the frame.",
     }));
   }, [releaseCamera]);
@@ -243,7 +257,11 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     if (!track || !view.torchSupported) return;
     const enabled = !view.torchEnabled;
     try {
-      await track.applyConstraints({ advanced: [{ torch: enabled } as TorchConstraint] });
+      const plan = exposurePlanRef.current;
+      await applyCameraAdjustments(track, {
+        torch: enabled,
+        ...(plan && view.exposureReduced ? { exposureCompensation: plan.reduced } : {}),
+      });
       setView((previous) => ({ ...previous, torchEnabled: enabled }));
     } catch {
       setView((previous) => ({
@@ -252,7 +270,33 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
         torchSupported: false,
       }));
     }
-  }, [view.torchSupported, view.torchEnabled]);
+  }, [view.torchSupported, view.torchEnabled, view.exposureReduced]);
+
+  const toggleExposure = useCallback(async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    const plan = exposurePlanRef.current;
+    if (!track || !plan || !view.exposureSupported) return;
+    const reduced = !view.exposureReduced;
+    const cycle = cycleRef.current;
+
+    try {
+      await applyCameraAdjustments(track, {
+        exposureCompensation: reduced ? plan.reduced : plan.baseline,
+        ...(view.torchSupported ? { torch: view.torchEnabled } : {}),
+      });
+      if (cycleRef.current !== cycle || !isMounted.current) return;
+      setView((previous) => ({ ...previous, exposureReduced: reduced }));
+    } catch {
+      if (cycleRef.current !== cycle || !isMounted.current) return;
+      exposurePlanRef.current = null;
+      setView((previous) => ({
+        ...previous,
+        exposureSupported: false,
+        exposureReduced: false,
+        status: "Exposure adjustment isn't supported by this camera.",
+      }));
+    }
+  }, [view.exposureReduced, view.exposureSupported, view.torchEnabled, view.torchSupported]);
 
   const scanPhoto = useCallback(async (file: File) => {
     releaseCamera();
@@ -263,6 +307,8 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       result: null,
       torchEnabled: false,
       torchSupported: false,
+      exposureReduced: false,
+      exposureSupported: false,
       status: "Analyzing your image in high detail…",
     }));
     try {
@@ -342,6 +388,8 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
           status: "Camera paused while the app was in the background. Tap Open camera to resume.",
           torchEnabled: false,
           torchSupported: false,
+          exposureReduced: false,
+          exposureSupported: false,
         }));
       }
     };
@@ -351,6 +399,6 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
 
   return {
     videoRef, view,
-    start, stop, switchCamera, toggleTorch, scanPhoto, dismissResult,
+    start, stop, switchCamera, toggleTorch, toggleExposure, scanPhoto, dismissResult,
   };
 }
