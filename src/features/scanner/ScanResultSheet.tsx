@@ -1,5 +1,5 @@
-import { ArrowRight, ArrowUpRight, Check, Copy, RotateCcw, X } from "lucide-react";
-import { useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
 import type { LocatedWaveCode } from "../../domain/wavecode";
 import { isSupportedMusicUrl, musicIdentity, platformLabel } from "../../domain/music-url";
 
@@ -12,8 +12,16 @@ interface Props {
 export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
   const [selection, setSelection] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
   const code = codes[selection];
   if (!code || !isSupportedMusicUrl(code.url)) return null;
+
   const url = code.url;
   const copy = async () => {
     try {
@@ -28,7 +36,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
     <div className="result-sheet" role="dialog" aria-modal="false" aria-labelledby="result-title">
       <div className="sheet-grabber" aria-hidden="true" />
       <div className="result-topline">
-        <span className="result-ok"><Check size={15} strokeWidth={3} /> CODE FOUND</span>
+        <span className="result-ok">CODE FOUND</span>
         <button className="sheet-dismiss" type="button" onClick={onDismiss} aria-label="Close result"><X size={19} /></button>
       </div>
       <h2 id="result-title">There's your<br /><em>music.</em></h2>
@@ -47,17 +55,14 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
           <strong>{platformLabel(url)}</strong>
           <span>{musicIdentity(url)}</span>
         </div>
-        <ArrowUpRight size={19} />
       </div>
       <div className="result-buttons">
-        <a className="result-open" href={url} target="_blank" rel="noopener noreferrer">
-          Open track <ArrowRight size={19} />
-        </a>
+        <a className="result-open" href={url} target="_blank" rel="noopener noreferrer">Open track</a>
         <button type="button" className="result-copy" onClick={() => void copy()} aria-label={copied ? "Link copied" : "Copy track link"}>
-          {copied ? <Check size={19} /> : <Copy size={19} />}
+          {copied ? "Copied" : "Copy link"}
         </button>
       </div>
-      <button type="button" className="result-again" onClick={onScanAgain}><RotateCcw size={14} /> Scan another code</button>
+      <button type="button" className="result-again" onClick={onScanAgain}>Scan another code</button>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { captureFile, captureFrame, type CaptureMode } from "../../infrastructur
 import { originalPhotoBytes } from "../../infrastructure/camera/original-photo";
 
 export type ScanPhase =
-  | "idle" | "starting" | "scanning" | "uploading" | "found" | "error";
+  | "idle" | "starting" | "scanning" | "uploading" | "found" | "no-result" | "error";
 
 export interface ScanView {
   phase: ScanPhase;
@@ -295,7 +295,7 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       }
       setView((previous) => ({
         ...previous,
-        phase: "idle",
+        phase: "no-result",
         status: "No WaveCode found. Try a sharper image with the full code visible.",
       }));
     } catch (error) {
