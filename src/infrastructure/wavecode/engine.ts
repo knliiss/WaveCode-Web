@@ -6,6 +6,9 @@ import type {
   WaveCodeEngine,
 } from "../../domain/wavecode";
 
+type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
+type EngineCommand = WithoutId<EngineRequest>;
+
 type Pending = {
   resolve(value: unknown): void;
   reject(error: Error): void;
@@ -36,7 +39,7 @@ export class BrowserWaveCodeEngine implements WaveCodeEngine {
   }
 
   private request<T>(
-    request: Omit<EngineRequest, "id">,
+    request: EngineCommand,
     transfer?: Transferable[],
   ): Promise<T> {
     if (this.destroyed) return Promise.reject(new Error("WaveCode engine is closed."));

@@ -2,7 +2,7 @@ import {
   ArrowDownToLine, ArrowRight, Check, ClipboardPaste, Clock3,
   Copy, Link2, LoaderCircle, MoveUpRight, ShieldCheck,
 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import type { GeneratedWaveCode, WaveCodeEngine } from "../../domain/wavecode";
 import { parseMoment, platformLabel, validateMusicLink } from "../../domain/music-url";
 import { downloadBytes, downloadSvg } from "../../infrastructure/download";
@@ -164,7 +164,7 @@ export function CreateScreen({ engine }: Props) {
             <div className="output-empty">
               <div className="sample-lines" aria-hidden="true">
                 {Array.from({ length: 15 }, (_, i) => (
-                  <span key={i} style={{ "--i": i, "--up": 13 + Math.abs(7 - i) * 3, "--down": 16 + (i % 5) * 7 } as React.CSSProperties} />
+                  <span key={i} style={{ "--i": i, "--up": 13 + Math.abs(7 - i) * 3, "--down": 16 + (i % 5) * 7 } as CSSProperties} />
                 ))}
               </div>
               <span>Your sound, in 36 columns.</span>

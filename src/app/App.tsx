@@ -10,7 +10,7 @@ function Brand({ small = false }: { small?: boolean }) {
   return (
     <div className={"brand " + (small ? "brand-small" : "")}>
       <div className="brand-icon"><img src="./logo.svg" alt="" /></div>
-      <div className="brand-word">wave<span>code</span><sup>®</sup></div>
+      <div className="brand-word">wave<span>code</span></div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ export function captureArea(videoWidth: number, videoHeight: number, mode: Captu
   if (!(videoWidth > 0) || !(videoHeight > 0)) {
     throw new Error("Camera is not ready.");
   }
-  const fraction = mode === "finder" ? [0.96, 0.62] : mode === "detail" ? [0.78, 0.4] : [1, 1];
+  const fraction: readonly [number, number] = mode === "finder" ? [0.96, 0.62] : mode === "detail" ? [0.78, 0.4] : [1, 1];
   const sw = Math.round(videoWidth * fraction[0]);
   const sh = Math.round(videoHeight * fraction[1]);
   const longest = mode === "detail" ? 1560 : mode === "full" ? 1600 : 1440;
