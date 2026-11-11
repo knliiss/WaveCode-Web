@@ -8,7 +8,9 @@
     "sdk:build": "bash scripts/build-wavecode.sh",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 0.0.0.0",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "tunnel:setup": "bash scripts/setup-cloudflare-tunnel.sh",
+    "tunnel:run": "cloudflared tunnel --config \"$HOME/.cloudflared/wawecode.yml\" run wavecode-web",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
