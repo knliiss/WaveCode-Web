@@ -88,5 +88,12 @@ test("a rotated, light-on-dark physical-style tag with nearby decoration still s
   });
 
   await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  const found = await page.locator(".result-sheet").evaluate((sheet) => ({
+    html: sheet.innerHTML.slice(-1200),
+    links: Array.from(sheet.querySelectorAll("a")).map((a) => ({
+      href: a.getAttribute("href"), text: a.textContent,
+    })),
+  }));
+  console.log("Physical scan debug:", JSON.stringify(found));
   await expect(page.getByRole("link", { name: "Open track" })).toHaveAttribute("href", TRACK);
 });
