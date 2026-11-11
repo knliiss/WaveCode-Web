@@ -280,8 +280,9 @@ img { display: block; max-width: 100%; }
 }
 .create-submit:hover:not(:disabled) { background: #343434; }
 .output-panel {
-  margin-top: 14px; padding: 20px 23px 16px;
-  border: 1px solid #e4e4e1; border-radius: 19px;
+  margin-top: 22px;
+  padding: 0;
+  border: 0;
 }
 .wavecode-preview {
   display: block;
@@ -401,7 +402,7 @@ img { display: block; max-width: 100%; }
   .nav-inner { width: 100%; }
   .nav-item { flex: 1; min-width: 0; }
   .creator-panel { padding: 20px 18px; }
-  .output-panel { padding: 19px 17px; }
+  .output-panel { padding: 0; }
   .result-sheet { padding: 11px 17px 15px; }
 }
 @media (max-height: 720px) and (max-width: 980px) {
@@ -460,12 +461,10 @@ img { display: block; max-width: 100%; }
   .input-wrap:focus-within { border-color: var(--ink); }
   .input-wrap input, .moment-field input { color: var(--ink); }
   .input-wrap input::placeholder, .moment-field input::placeholder { color: #aaa9a4; }
-  .output-panel { border-color: var(--border); }
   .nav-item { color: var(--muted); }
   .app-footer a:hover { color: var(--ink); }
   .about-modal p { color: var(--muted); }
 }
 @media (forced-colors: active) {
   .wavecode-preview { color: CanvasText; forced-color-adjust: auto; }
-  .output-panel { border-color: CanvasText; }
 }
