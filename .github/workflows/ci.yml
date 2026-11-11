@@ -29,6 +29,14 @@ jobs:
       - run: npm run build
       - name: Install browser
         run: npx playwright install chromium webkit
+      - name: Install WebKit runtime libraries
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-1 libgraphene-1.0-0 libevent-2.1-7t64 libopus0 \
+            libgstreamer-plugins-base1.0-0 libgstreamer-gl1.0-0 \
+            libgstreamer-plugins-bad1.0-0 libavif16 libharfbuzz-icu0 \
+            libsoup-3.0-0 libwayland-server0 libmanette-0.2-0 \
+            libsecret-1-0 libhyphen0 libgles2 gstreamer1.0-libav
       - name: End-to-end browser checks
         run: npm run test:e2e
       - uses: actions/upload-artifact@v4
