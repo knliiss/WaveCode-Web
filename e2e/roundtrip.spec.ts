@@ -19,7 +19,7 @@ test("generate, download and decode the same WaveCode entirely in the browser", 
   await page.getByRole("textbox", { name: "Start at a moment" }).fill("00:59");
   await page.getByRole("button", { name: "Create WaveCode" }).click();
 
-  await expect(page.getByAltText("Generated 36-column WaveCode with capsule-shaped rails")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy WaveCode image" })).toBeVisible();
   const downloadReady = page.waitForEvent("download");
   await page.getByRole("button", { name: "PNG" }).click();

@@ -14,7 +14,7 @@ test("a real WaveCode can be created, downloaded and scanned on mobile", async (
   await page.getByLabel("Start at a moment").fill("00:59");
   await page.getByRole("button", { name: /Create WaveCode/i }).click();
 
-  await expect(page.getByAltText("Generated 36-column WaveCode with capsule-shaped rails")).toBeVisible();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy WaveCode image" })).toBeVisible();
   await page.screenshot({ path: "test-results/create-mobile.png", fullPage: true });
 
