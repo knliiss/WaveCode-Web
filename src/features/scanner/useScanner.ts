@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocatedWaveCode, ScanSource, WaveCodeEngine } from "../../domain/wavecode";
 import { isSupportedMusicUrl } from "../../domain/music-url";
 import { captureFile, captureFrame, type CaptureMode } from "../../infrastructure/camera/frames";
+import { originalPhotoBytes } from "../../infrastructure/camera/original-photo";
 
 export type ScanPhase =
   | "idle" | "starting" | "scanning" | "uploading" | "found" | "error";
@@ -263,6 +264,22 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     }));
     try {
       await engine.initialize();
+      if (cycleRef.current !== cycle || !isMounted.current) return;
+
+      const original = await originalPhotoBytes(file);
+      if (cycleRef.current !== cycle || !isMounted.current) return;
+      if (original) {
+        setView((previous) => ({
+          ...previous, status: "Checking the original photo without resizing…",
+        }));
+        const detected = codeCandidates(await engine.scan(original));
+        if (cycleRef.current !== cycle || !isMounted.current) return;
+        if (detected.length) {
+          finish(detected, "image");
+          return;
+        }
+      }
+
       for await (const { bytes, pass, total } of captureFile(file)) {
         if (cycleRef.current !== cycle || !isMounted.current) return;
         setView((previous) => ({

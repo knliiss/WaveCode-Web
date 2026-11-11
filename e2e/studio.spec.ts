@@ -36,7 +36,8 @@ test("a real WaveCode can be created, downloaded and scanned on mobile", async (
   await expect(open).toHaveAttribute("href", hit + "?t=59");
 });
 
-test("mobile camera starts and can be stopped without leaving active media", async ({ page, context }) => {
+test("mobile camera starts and can be stopped without leaving active media", async ({ page, context }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile-webkit", "Virtual camera behavior differs from physical iOS Safari.");
   await context.grantPermissions(["camera"]);
   await page.goto("/");
   await page.getByRole("button", { name: /Open camera/i }).click();
