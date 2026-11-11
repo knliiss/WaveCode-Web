@@ -65,7 +65,7 @@ test("a rotated, light-on-dark physical-style tag with nearby decoration still s
       ctx.fillStyle = "#e1dfd5";
       for (let index = 0; index < 16; index++) {
         ctx.beginPath();
-        ctx.roundRect(-640 + index * 14, -20 - index % 4 * 7, 6, 20 + index % 4 * 14, 3);
+        ctx.roundRect(-680 + index * 11, -20 - index % 4 * 7, 6, 20 + index % 4 * 14, 3);
         ctx.fill();
       }
       ctx.restore();
