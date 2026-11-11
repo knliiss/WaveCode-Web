@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 const hit = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 
@@ -25,7 +26,11 @@ test("a real WaveCode can be created, downloaded and scanned on mobile", async (
   expect(path).toBeTruthy();
 
   await page.getByRole("button", { name: /Scan 01/i }).click();
-  await page.getByLabel("Choose a WaveCode photo").setInputFiles(path!);
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "wavecode.png",
+    mimeType: "image/png",
+    buffer: readFileSync(path!),
+  });
   await expect(page.getByRole("heading", { name: /There's your music/i })).toBeVisible();
   const open = page.getByRole("link", { name: /Open track/i });
   await expect(open).toHaveAttribute("href", hit + "?t=59");

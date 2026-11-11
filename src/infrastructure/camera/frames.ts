@@ -164,7 +164,9 @@ async function photoBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 }
 
 export async function* captureFile(file: File): AsyncGenerator<PhotoCapture> {
-  if (!file.type.startsWith("image/")) {
+  // Some mobile file pickers omit the MIME type even for valid PNG/JPEG.
+  // Trust the browser image decoder for empty types, not an extension guess.
+  if (file.type && !file.type.startsWith("image/") && file.type !== "application/octet-stream") {
     throw new Error("Choose a supported image file.");
   }
   if (file.size > 30 * 1024 * 1024) {

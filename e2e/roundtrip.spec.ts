@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 const TRACK = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 const EXPECTED = TRACK + "?t=59";
@@ -32,7 +33,11 @@ test("generate, download and decode the same WaveCode entirely in the browser", 
   }
 
   await navigation.getByRole("button", { name: /Scan/ }).click();
-  await page.locator('input[type="file"]').setInputFiles(filepath);
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "wavecode.png",
+    mimeType: "image/png",
+    buffer: readFileSync(filepath),
+  });
   await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
 
   const link = page.getByRole("link", { name: /Open track/ });
