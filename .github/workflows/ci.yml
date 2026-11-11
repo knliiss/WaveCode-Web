@@ -21,9 +21,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: latest
+      - name: Install wasm-pack
+        run: |
+          archive="wasm-pack-v0.15.1-x86_64-unknown-linux-musl"
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://github.com/rustwasm/wasm-pack/releases/download/v0.15.1/${archive}.tar.gz" \
+            -o /tmp/wasm-pack.tar.gz
+          tar -xzf /tmp/wasm-pack.tar.gz -C /tmp
+          mkdir -p "$CARGO_HOME/bin"
+          install -m 755 "/tmp/${archive}/wasm-pack" "$CARGO_HOME/bin/wasm-pack"
+          echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
+          "$CARGO_HOME/bin/wasm-pack" --version
       - run: npm install --no-audit --no-fund
       - run: npm run sdk:build
       - run: npm run typecheck
