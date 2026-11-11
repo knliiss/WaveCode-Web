@@ -10,7 +10,7 @@ describe("copying the generated code", () => {
 
     class ClipboardItemMock {
       constructor(items: Record<string, Blob>) {
-        written = { type: Object.keys(items)[0], blob: items["image/png"] };
+        written = { type: Object.keys(items)[0]!, blob: items["image/png"]! };
       }
     }
 
@@ -21,7 +21,7 @@ describe("copying the generated code", () => {
     await copyPngImage(source);
 
     expect(write).toHaveBeenCalledOnce();
-    expect(write.mock.calls[0][0]).toHaveLength(1);
+    expect(write.mock.calls[0]![0]).toHaveLength(1);
     expect(written?.type).toBe("image/png");
     expect(Array.from(new Uint8Array(await written!.blob.arrayBuffer()))).toEqual(Array.from(source));
   });

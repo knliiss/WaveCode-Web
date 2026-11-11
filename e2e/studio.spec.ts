@@ -66,7 +66,7 @@ test("mobile clipboard copies PNG pixels, resets its button and avoids input zoo
       value: {
         readText: async () => "",
         write: async (items: TestClipboardItem[]) => {
-          const image = await items[0].getType("image/png");
+          const image = await items[0]!.getType("image/png");
           const bytes = new Uint8Array(await image.arrayBuffer());
           record.copiedWaveCode = {
             count: (record.copiedWaveCode?.count ?? 0) + 1,
