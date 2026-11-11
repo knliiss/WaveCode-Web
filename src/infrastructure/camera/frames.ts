@@ -1,4 +1,4 @@
-export type CaptureMode = "finder" | "detail" | "full";
+export type CaptureMode = "finder" | "detail" | "full" | "upper" | "lower" | "left" | "right";
 
 export interface CropArea {
   sx: number;
@@ -17,7 +17,11 @@ export function captureArea(videoWidth: number, videoHeight: number, mode: Captu
   const sensorAspect = videoWidth / videoHeight;
   const visibleWidth = mode === "full" ? videoWidth : sensorAspect > viewAspect ? videoHeight * viewAspect : videoWidth;
   const visibleHeight = mode === "full" ? videoHeight : sensorAspect < viewAspect ? videoWidth / viewAspect : videoHeight;
-  const fraction: readonly [number, number] = mode === "finder" ? [0.96, 0.62] : mode === "detail" ? [0.78, 0.4] : [1, 1];
+  const fraction: readonly [number, number] = mode === "finder" ? [0.96, 0.62]
+    : mode === "detail" ? [0.78, 0.4]
+      : mode === "upper" || mode === "lower" ? [0.96, 0.7]
+        : mode === "left" || mode === "right" ? [0.7, 0.88]
+          : [1, 1];
   const sw = Math.round(visibleWidth * fraction[0]);
   const sh = Math.round(visibleHeight * fraction[1]);
   const longest = mode === "detail" ? 1560 : mode === "full" ? 1600 : 1440;
@@ -26,8 +30,10 @@ export function captureArea(videoWidth: number, videoHeight: number, mode: Captu
   const height = Math.max(1, Math.round(sh * factor));
 
   return {
-    sx: Math.round((videoWidth - sw) / 2),
-    sy: Math.round((videoHeight - sh) / 2),
+    sx: Math.round((videoWidth - visibleWidth) / 2 +
+      (visibleWidth - sw) * (mode === "left" ? 0 : mode === "right" ? 1 : 0.5)),
+    sy: Math.round((videoHeight - visibleHeight) / 2 +
+      (visibleHeight - sh) * (mode === "upper" ? 0 : mode === "lower" ? 1 : 0.5)),
     sw,
     sh,
     width,
