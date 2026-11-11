@@ -1,4 +1,4 @@
-export type CaptureMode = "finder" | "detail" | "full";
+export type CaptureMode = "finder" | "detail" | "full" | "upper" | "lower" | "left" | "right";
 
 export interface CropArea {
   sx: number;
@@ -17,7 +17,11 @@ export function captureArea(videoWidth: number, videoHeight: number, mode: Captu
   const sensorAspect = videoWidth / videoHeight;
   const visibleWidth = mode === "full" ? videoWidth : sensorAspect > viewAspect ? videoHeight * viewAspect : videoWidth;
   const visibleHeight = mode === "full" ? videoHeight : sensorAspect < viewAspect ? videoWidth / viewAspect : videoHeight;
-  const fraction: readonly [number, number] = mode === "finder" ? [0.96, 0.62] : mode === "detail" ? [0.78, 0.4] : [1, 1];
+  const fraction: readonly [number, number] = mode === "finder" ? [0.96, 0.62]
+    : mode === "detail" ? [0.78, 0.4]
+      : mode === "upper" || mode === "lower" ? [0.96, 0.7]
+        : mode === "left" || mode === "right" ? [0.7, 0.88]
+          : [1, 1];
   const sw = Math.round(visibleWidth * fraction[0]);
   const sh = Math.round(visibleHeight * fraction[1]);
   const longest = mode === "detail" ? 1560 : mode === "full" ? 1600 : 1440;
@@ -26,8 +30,10 @@ export function captureArea(videoWidth: number, videoHeight: number, mode: Captu
   const height = Math.max(1, Math.round(sh * factor));
 
   return {
-    sx: Math.round((videoWidth - sw) / 2),
-    sy: Math.round((videoHeight - sh) / 2),
+    sx: Math.round((videoWidth - visibleWidth) / 2 +
+      (visibleWidth - sw) * (mode === "left" ? 0 : mode === "right" ? 1 : 0.5)),
+    sy: Math.round((videoHeight - visibleHeight) / 2 +
+      (visibleHeight - sh) * (mode === "upper" ? 0 : mode === "lower" ? 1 : 0.5)),
     sw,
     sh,
     width,
@@ -71,38 +77,62 @@ export function photoScanAreas(sourceWidth: number, sourceHeight: number): CropA
   if (!(sourceWidth > 0 && sourceHeight > 0)) {
     throw new Error("Invalid image dimensions.");
   }
+
   const maxDimension = Math.max(sourceWidth, sourceHeight);
-  const fromRegion = (sx: number, sy: number, sw: number, sh: number, limit: number): CropArea => {
+  const areas: CropArea[] = [];
+
+  const append = (
+    widthFraction: number,
+    heightFraction: number,
+    fx: number,
+    fy: number,
+    limit: number,
+  ) => {
+    const sw = Math.max(1, Math.round(sourceWidth * widthFraction));
+    const sh = Math.max(1, Math.round(sourceHeight * heightFraction));
     const scale = Math.min(1, limit / Math.max(sw, sh));
-    return {
-      sx: Math.round(sx), sy: Math.round(sy),
-      sw: Math.round(sw), sh: Math.round(sh),
+    areas.push({
+      sx: Math.round((sourceWidth - sw) * fx),
+      sy: Math.round((sourceHeight - sh) * fy),
+      sw,
+      sh,
       width: Math.max(1, Math.round(sw * scale)),
       height: Math.max(1, Math.round(sh * scale)),
-    };
+    });
   };
 
-  const areas = [fromRegion(0, 0, sourceWidth, sourceHeight, 1800)];
+  append(1, 1, 0, 0, 1800);
   if (maxDimension > 1800) {
-    // A high-detail full-frame attempt improves thin bars and JPEG photographs.
-    areas.push(fromRegion(0, 0, sourceWidth, sourceHeight, 2600));
+    append(1, 1, 0, 0, 2600);
   }
-  if (maxDimension > 2600) {
-    // Small marks in a large camera photo can disappear when downscaled.
-    // Overlapping tiles preserve detail while retaining the official Rust
-    // decoder's 20-megapixel input limit, without server-side processing.
-    const sw = Math.round(sourceWidth * 0.65);
-    const sh = Math.round(sourceHeight * 0.65);
+
+  if (sourceWidth < 300 || sourceHeight < 300) return areas;
+
+  // Scan overlapping regions even for ordinary phone photos. The previous
+  // implementation only tiled photos wider than 2600 px, so a physical mark
+  // beside a logo or on a busy background was never isolated.
+  for (const [fx, fy] of [
+    [0.5, 0.5],
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [1, 1],
+  ] as const) {
+    append(0.7, 0.7, fx, fy, 1800);
+  }
+
+  if (maxDimension > 900) {
     for (const [fx, fy] of [
-      [0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0.5],
+      [0.5, 0.5],
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
     ] as const) {
-      areas.push(fromRegion(
-        (sourceWidth - sw) * fx,
-        (sourceHeight - sh) * fy,
-        sw, sh, 1850,
-      ));
+      append(0.55, 0.55, fx, fy, 1800);
     }
   }
+
   return areas;
 }
 

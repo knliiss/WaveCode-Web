@@ -19,6 +19,24 @@ describe("adaptive camera capture", () => {
     expect(area.sw).toBeLessThan(1000);
     expect(area.sx).toBeGreaterThan(400);
   });
+  it("samples off-center live regions without exceeding the video sensor", () => {
+    const left = captureArea(1920, 1080, "left", 360, 430);
+    const right = captureArea(1920, 1080, "right", 360, 430);
+    expect(left.sx).toBeLessThan(right.sx);
+    expect(left.sy).toBe(right.sy);
+
+    const upper = captureArea(1080, 1920, "upper", 430, 760);
+    const lower = captureArea(1080, 1920, "lower", 430, 760);
+    expect(upper.sy).toBeLessThan(lower.sy);
+    expect(upper.sx).toBe(lower.sx);
+
+    for (const area of [left, right, upper, lower]) {
+      expect(area.sx).toBeGreaterThanOrEqual(0);
+      expect(area.sy).toBeGreaterThanOrEqual(0);
+      expect(Math.max(area.width, area.height)).toBeLessThanOrEqual(1600);
+    }
+  });
+
   it("does not upscale low resolution sensor frames", () => {
     expect(captureArea(320, 240, "full").width).toBe(320);
   });
@@ -32,7 +50,7 @@ describe("high-detail image scanning", () => {
     const photoWidth = 8064;
     const photoHeight = 6048;
     const areas = photoScanAreas(photoWidth, photoHeight);
-    expect(areas).toHaveLength(7);
+    expect(areas).toHaveLength(12);
     expect(areas[0]?.sx).toBe(0);
     expect(areas[0]?.sw).toBe(photoWidth);
     for (const area of areas) {
@@ -45,10 +63,24 @@ describe("high-detail image scanning", () => {
     }
   });
 
-  it("avoids wasted high-detail and tile passes for small input images", () => {
-    const areas = photoScanAreas(900, 600);
+  it("isolates a physical code from a portrait phone photo even below 2600 px", () => {
+    const areas = photoScanAreas(1080, 1920);
+    expect(areas).toContainEqual({
+      sx: 0,
+      sy: 576,
+      sw: 756,
+      sh: 1344,
+      width: 756,
+      height: 1344,
+    });
+    expect(areas).toHaveLength(12);
+    expect(areas.some((area) => area.sx > 0 && area.sy > 0)).toBe(true);
+  });
+
+  it("skips extra crops for tiny pictures and rejects invalid dimensions", () => {
+    const areas = photoScanAreas(260, 180);
     expect(areas).toHaveLength(1);
-    expect(areas[0]?.width).toBe(900);
+    expect(areas[0]?.width).toBe(260);
     expect(() => photoScanAreas(0, 200)).toThrow();
   });
 });
