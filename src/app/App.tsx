@@ -9,7 +9,7 @@ type Tab = "scan" | "create";
 function Brand({ small = false }: { small?: boolean }) {
   return (
     <div className={"brand " + (small ? "brand-small" : "")}>
-      <div className="brand-icon"><img src="./logo.svg" alt="" /></div>
+      <div className="brand-icon"><span className="brand-symbol" aria-hidden="true" /></div>
       <div className="brand-word">wave<span>code</span></div>
     </div>
   );
@@ -46,7 +46,7 @@ export function App() {
           </main>
 
           <aside className="editorial-panel" aria-label="About the WaveCode format">
-            <div className="editorial-art" aria-hidden="true"><img src="./logo.svg" alt="" /></div>
+            <div className="editorial-art" aria-hidden="true"><span className="brand-symbol" /></div>
             <div className="editorial-middle">
               <h2>Keep the<br /><em>moment.</em></h2>
             </div>
