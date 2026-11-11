@@ -263,9 +263,13 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
     }));
     try {
       await engine.initialize();
-      const passes = await captureFile(file);
-      for (const image of passes) {
-        const detected = codeCandidates(await engine.scan(image));
+      for await (const { bytes, pass, total } of captureFile(file)) {
+        if (cycleRef.current !== cycle || !isMounted.current) return;
+        setView((previous) => ({
+          ...previous,
+          status: `Analyzing your image · pass ${pass} of ${total}…`,
+        }));
+        const detected = codeCandidates(await engine.scan(bytes));
         if (cycleRef.current !== cycle || !isMounted.current) return;
         if (detected.length) {
           finish(detected, "image");
