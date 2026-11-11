@@ -50,7 +50,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
         </div>
       )}
       <div className="result-track">
-        <span className="track-monogram"><img src="./logo.svg" alt="" /></span>
+        <span className="track-monogram"><span className="brand-symbol" aria-hidden="true" /></span>
         <div className="result-track-text">
           <strong>{platformLabel(url)}</strong>
           <span>{musicIdentity(url)}</span>

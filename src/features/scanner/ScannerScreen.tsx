@@ -25,7 +25,7 @@ export function ScannerScreen({ engine, active }: Props) {
         <video ref={scanner.videoRef} autoPlay muted playsInline aria-label="Live camera preview" />
         {!running && view.phase !== "starting" && (
           <div className="scanner-placeholder" aria-hidden="true">
-            <div className="placeholder-logo-wrap"><img src="./logo.svg" alt="" /></div>
+            <div className="placeholder-logo-wrap"><span className="brand-symbol" /></div>
           </div>
         )}
         {view.phase === "starting" && (
