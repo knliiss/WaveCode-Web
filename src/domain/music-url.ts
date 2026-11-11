@@ -21,7 +21,8 @@ export function isSupportedMusicUrl(value: string): boolean {
     if (url.protocol !== "https:" || !supportedHosts.has(url.hostname.toLowerCase())) {
       return false;
     }
-    if (url.username || url.password || url.port) {
+    const authority = value.trim().match(/^https:\/\/([^/?#]+)/i)?.[1] ?? "";
+    if (url.username || url.password || url.port || authority.includes(":") || authority.includes("@")) {
       return false;
     }
     return true;
