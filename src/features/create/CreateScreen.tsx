@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { GeneratedWaveCode, WaveCodeEngine } from "../../domain/wavecode";
-import { parseMoment, platformLabel, validateMusicLink } from "../../domain/music-url";
+import { parseMoment, validateMusicLink } from "../../domain/music-url";
 import { copyPngImage } from "../../infrastructure/clipboard";
 import { downloadBytes, downloadSvg } from "../../infrastructure/download";
+import { WaveCodePreview } from "./WaveCodePreview";
 
 interface Props { engine: WaveCodeEngine; }
 
@@ -15,19 +16,8 @@ export function CreateScreen({ engine }: Props) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [copyState, setCopyState] = useState<CopyState>("idle");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const jobRef = useRef(0);
   const copyResetRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    if (!result) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(new Blob([result.svg], { type: "image/svg+xml" }));
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [result]);
 
   useEffect(() => () => window.clearTimeout(copyResetRef.current), []);
 
@@ -153,24 +143,9 @@ export function CreateScreen({ engine }: Props) {
         </form>
       </div>
 
-      <div className={"output-panel " + (result ? "generated" : "")}>
-        <div className="output-stage">
-          {previewUrl ? (
-            <>
-              <img src={previewUrl} alt="Generated 36-column WaveCode with capsule-shaped rails" />
-              <div className="output-meta"><span>{platformLabel(result?.canonicalUrl ?? "")}</span></div>
-            </>
-          ) : (
-            <div className="output-empty">
-              <div className="sample-lines" aria-hidden="true">
-                {Array.from({ length: 15 }, (_, i) => (
-                  <span key={i} style={{ "--i": i, "--up": 13 + Math.abs(7 - i) * 3, "--down": 16 + (i % 5) * 7 } as CSSProperties} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        {result && (
+      {result && (
+        <div className="output-panel">
+          <WaveCodePreview svg={result.svg} />
           <div className="export-actions">
             <button type="button" className="export-primary" onClick={() => downloadSvg(result.svg, "wavecode.svg")}>Save SVG</button>
             <button type="button" onClick={() => downloadBytes(result.png, "wavecode.png", "image/png")}>Save PNG</button>
@@ -178,8 +153,8 @@ export function CreateScreen({ engine }: Props) {
               {copyState === "copied" ? "Copied" : copyState === "copying" ? "Copying…" : "Copy image"}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <span className="visually-hidden" role="status">{copyState === "copied" ? "WaveCode image copied to clipboard." : ""}</span>
       {message && <div className="form-message" role="alert">{message}</div>}
