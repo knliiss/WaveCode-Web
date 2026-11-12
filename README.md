@@ -119,8 +119,10 @@ No backend, API keys, CORS proxy or persistent database are needed.
   Shorts use the regular YouTube watch URL.
 - TikTok and Instagram Reels do not accept timestamps without a supported
   native seek link. TikTok uses its ID-only `/@/video/<id>` route, which may vary
-  by TikTok client. Short `vt.tiktok.com` / `vm.tiktok.com` redirects must be
-  expanded to a full video URL before offline encoding.
+  by TikTok client. Short `vt.tiktok.com/<share-code>/` links are encoded directly
+  and losslessly without resolving the redirect. Short links may expire or be
+  unavailable later, and the short form is a distinct WaveCode identity.
+  Other short-link hosts (including `vm.tiktok.com`) still require expansion.
 - Camera exposure, blur, bar damage, deep perspective, and reflections can
   reduce optical success. The decoder uses error correction, but no optical
   recognition algorithm guarantees every real-world photo.
