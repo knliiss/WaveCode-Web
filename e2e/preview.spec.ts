@@ -5,7 +5,7 @@ const track = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 async function renderCode(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("button", { name: "Create" }).click();
-  await page.getByLabel("Track link").fill(track);
+  await page.getByLabel("Music or video link").fill(track);
   await page.getByRole("button", { name: "Create WaveCode" }).click();
   const preview = page.getByRole("img", { name: "Generated WaveCode preview" });
   await expect(preview).toBeVisible();
