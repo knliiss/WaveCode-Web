@@ -71,8 +71,8 @@ export function App() {
           <section className="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title" onClick={(event) => event.stopPropagation()}>
             <button type="button" className="about-close" aria-label="Close about panel" onClick={() => setAboutOpen(false)}><X size={20} /></button>
             <Brand small />
-            <h2 id="about-title">Music, in a mark.</h2>
-            <p>WaveCode is an open optical format that encodes a track's identity and optional starting moment into 36 columns, divided by a quiet center channel.</p>
+            <h2 id="about-title">Media, in a mark.</h2>
+            <p>WaveCode is an open 36-column optical format for music and video links. A start time is supported when the original platform can open it.</p>
             <p>Scanning and generation use the original open-source Rust decoder compiled to WebAssembly. Your images stay on your device.</p>
             <a href="https://github.com/knliiss/WaveCode" target="_blank" rel="noopener noreferrer" className="about-link">Explore the format</a>
           </section>
