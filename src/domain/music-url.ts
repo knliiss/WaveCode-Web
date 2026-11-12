@@ -6,6 +6,7 @@ const supportedHosts = new Set([
   "youtu.be",
   "www.tiktok.com",
   "tiktok.com",
+  "vt.tiktok.com",
   "www.instagram.com",
   "instagram.com",
   "open.spotify.com",
@@ -27,6 +28,7 @@ const videoHosts = new Set([
   "youtu.be",
   "www.tiktok.com",
   "tiktok.com",
+  "vt.tiktok.com",
   "www.instagram.com",
   "instagram.com",
 ]);
@@ -34,6 +36,7 @@ const videoHosts = new Set([
 const noNativeMomentHosts = new Set([
   "www.tiktok.com",
   "tiktok.com",
+  "vt.tiktok.com",
   "www.instagram.com",
   "instagram.com",
 ]);
@@ -47,6 +50,9 @@ export function isSupportedMusicUrl(value: string): boolean {
     const authority = value.trim().match(/^https:\/\/([^/?#]+)/i)?.[1] ?? "";
     if (url.username || url.password || url.port || authority.includes(":") || authority.includes("@")) {
       return false;
+    }
+    if (url.hostname.toLowerCase() === "vt.tiktok.com") {
+      return /^\/[A-Za-z0-9]{1,16}\/?$/.test(url.pathname);
     }
     return true;
   } catch {
@@ -76,8 +82,8 @@ export function validateMusicLink(value: string): string | null {
   if (!isSupportedMusicUrl(value)) {
     try {
       const host = new URL(value.trim()).hostname.toLowerCase();
-      if (host === "vt.tiktok.com" || host === "vm.tiktok.com") {
-        return "Open the TikTok share link and copy the full video URL. Short redirects cannot be encoded permanently without resolving them.";
+      if (host === "vm.tiktok.com") {
+        return "Use a vt.tiktok.com short link or the full TikTok video URL.";
       }
     } catch {
       // Fall through to the supported media error.
@@ -123,7 +129,7 @@ export function platformLabel(value: string): string {
     if (host === "youtu.be" || host.endsWith("youtube.com")) {
       return url.pathname.startsWith("/shorts/") ? "YouTube Shorts" : "YouTube";
     }
-    if (host === "tiktok.com" || host === "www.tiktok.com") return "TikTok";
+    if (host === "tiktok.com" || host === "www.tiktok.com" || host === "vt.tiktok.com") return "TikTok";
     if (host === "instagram.com" || host === "www.instagram.com") return "Instagram Reels";
     if (host.includes("spotify")) return "Spotify";
     if (host.includes("apple")) return "Apple Music";
