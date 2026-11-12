@@ -31,6 +31,13 @@ const cases = [
     label: "TikTok",
   },
   {
+    name: "TikTok short share link survives offline encoding",
+    input: "https://vt.tiktok.com/ZSp94BeDn/",
+    moment: null,
+    output: "https://vt.tiktok.com/ZSp94BeDn/",
+    label: "TikTok",
+  },
+  {
     name: "Instagram Reel opens native platform URL",
     input: "https://www.instagram.com/reel/DIPPWkUh7Rj/",
     moment: null,
