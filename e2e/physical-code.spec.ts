@@ -11,7 +11,7 @@ for (const variant of [
     await page.goto("/");
     await page.getByRole("navigation", { name: "Primary navigation" })
       .getByRole("button", { name: "Create" }).click();
-    await page.getByLabel("Track link").fill(TRACK);
+    await page.getByLabel("Music or video link").fill(TRACK);
     await page.getByRole("button", { name: "Create WaveCode" }).click();
     await expect(page.getByRole("button", { name: "Copy WaveCode image" })).toBeVisible();
   
