@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSupportedMusicUrl, musicIdentity, parseMoment, platformLabel, prettyMoment, validateMusicLink } from "../src/domain/music-url";
+import { isSupportedMusicUrl, isVideoUrl, musicIdentity, parseMoment, platformLabel, prettyMoment, supportsNativeMoment, validateMusicLink } from "../src/domain/music-url";
 
 describe("public music link security", () => {
   it("accepts known music providers over https", () => {
@@ -19,13 +19,48 @@ describe("public music link security", () => {
     ]) expect(isSupportedMusicUrl(url)).toBe(false);
   });
   it("reports a helpful error for unrecognized links", () => {
-    expect(validateMusicLink("https://example.com")).toContain("supported HTTPS music link");
+    expect(validateMusicLink("https://example.com")).toContain("supported HTTPS media link");
     expect(validateMusicLink("")).toContain("Paste");
   });
   it("displays music identity without fetching metadata", () => {
     const url = "https://music.youtube.com/watch?v=dQw4w9WgXcQ&t=59";
     expect(musicIdentity(url)).toBe("dQw4w9WgXcQ");
     expect(platformLabel(url)).toBe("YouTube Music");
+  });
+});
+
+describe("video link handling", () => {
+  it("recognizes native platform URLs without embedded or proxy players", () => {
+    for (const [url, label] of [
+      ["https://www.youtube.com/watch?v=JGwWNGJdvx8", "YouTube"],
+      ["https://youtu.be/JGwWNGJdvx8?t=95", "YouTube"],
+      ["https://www.youtube.com/shorts/JGwWNGJdvx8", "YouTube Shorts"],
+      ["https://www.tiktok.com/@creator/video/7300873037530795272", "TikTok"],
+      ["https://www.tiktok.com/@/video/7300873037530795272", "TikTok"],
+      ["https://www.instagram.com/reel/DIPPWkUh7Rj/", "Instagram Reels"],
+    ] as const) {
+      expect(isSupportedMusicUrl(url)).toBe(true);
+      expect(isVideoUrl(url)).toBe(true);
+      expect(platformLabel(url)).toBe(label);
+      expect(validateMusicLink(url)).toBeNull();
+    }
+    expect(isVideoUrl("https://music.youtube.com/watch?v=JGwWNGJdvx8")).toBe(false);
+    expect(musicIdentity("https://www.instagram.com/reel/DIPPWkUh7Rj/")).toBe("DIPPWkUh7Rj");
+  });
+
+  it("only enables native timestamps on media providers that support them", () => {
+    expect(supportsNativeMoment("https://www.youtube.com/shorts/JGwWNGJdvx8")).toBe(true);
+    expect(supportsNativeMoment("https://www.youtube.com/watch?v=JGwWNGJdvx8")).toBe(true);
+    expect(supportsNativeMoment("https://www.tiktok.com/@creator/video/7300873037530795272")).toBe(false);
+    expect(supportsNativeMoment("https://www.instagram.com/reel/DIPPWkUh7Rj/")).toBe(false);
+    expect(validateMusicLink("https://www.instagram.com/reel/DIPPWkUh7Rj/?t=15")).toContain("do not support");
+  });
+
+  it("rejects lookalike video origins and explains short TikTok redirects", () => {
+    expect(isSupportedMusicUrl("https://www.tiktok.com.evil.test/@x/video/7300873037530795272")).toBe(false);
+    expect(isSupportedMusicUrl("https://www.instagram.com@evil.test/reel/DIPPWkUh7Rj/")).toBe(false);
+    expect(isSupportedMusicUrl("http://www.youtube.com/shorts/JGwWNGJdvx8")).toBe(false);
+    expect(validateMusicLink("https://vt.tiktok.com/ZSabc123/")).toContain("full video URL");
   });
 });
 

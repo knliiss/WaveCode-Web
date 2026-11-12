@@ -5,12 +5,12 @@ const hit = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 
 test("a real WaveCode can be created, downloaded and scanned on mobile", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Find the music/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Find the moment/i })).toBeVisible();
   await page.screenshot({ path: "test-results/scan-mobile.png", fullPage: true });
 
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("heading", { name: /Make it yours/i })).toBeVisible();
-  await page.getByLabel("Track link").fill(hit);
+  await page.getByLabel("Music or video link").fill(hit);
   await page.getByLabel("Start at a moment").fill("00:59");
   await page.getByRole("button", { name: /Create WaveCode/i }).click();
 
@@ -90,7 +90,7 @@ test("mobile clipboard copies PNG pixels, resets its button and avoids input zoo
     expect(fontSize).toBeGreaterThanOrEqual(16);
   }
 
-  await page.getByLabel("Track link").fill(hit);
+  await page.getByLabel("Music or video link").fill(hit);
   await page.getByRole("button", { name: "Create WaveCode" }).click();
 
   const copy = page.getByRole("button", { name: "Copy WaveCode image" });

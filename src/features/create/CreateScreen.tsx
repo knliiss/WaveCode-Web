@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { GeneratedWaveCode, WaveCodeEngine } from "../../domain/wavecode";
-import { parseMoment, validateMusicLink } from "../../domain/music-url";
+import { parseMoment, supportsNativeMoment, validateMusicLink } from "../../domain/music-url";
 import { copyPngImage } from "../../infrastructure/clipboard";
 import { downloadBytes, downloadSvg } from "../../infrastructure/download";
 import { WaveCodePreview } from "./WaveCodePreview";
@@ -18,6 +18,7 @@ export function CreateScreen({ engine }: Props) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const jobRef = useRef(0);
   const copyResetRef = useRef<number | undefined>(undefined);
+  const hasNativeMoment = supportsNativeMoment(link);
 
   useEffect(() => () => window.clearTimeout(copyResetRef.current), []);
 
@@ -40,7 +41,10 @@ export function CreateScreen({ engine }: Props) {
 
     let seconds: number | undefined;
     try {
-      seconds = parseMoment(moment);
+      if (!hasNativeMoment && moment.trim()) {
+        throw new Error("This platform cannot open videos at a specific moment.");
+      }
+      seconds = hasNativeMoment ? parseMoment(moment) : undefined;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Invalid timestamp.");
       return;
@@ -60,7 +64,7 @@ export function CreateScreen({ engine }: Props) {
       setResult(null);
       setMessage(error instanceof Error
         ? error.message
-        : "Unable to encode this link. Make sure it points to a supported track.");
+        : "Unable to encode this link. Make sure it points to supported media.");
     } finally {
       if (job === jobRef.current) setPending(false);
     }
@@ -70,6 +74,7 @@ export function CreateScreen({ engine }: Props) {
     try {
       const text = await navigator.clipboard.readText();
       setLink(text.trim());
+      if (!supportsNativeMoment(text)) setMoment("");
       clearResult();
     } catch {
       setMessage("Clipboard access isn't available. Paste the link manually.");
@@ -102,24 +107,29 @@ export function CreateScreen({ engine }: Props) {
 
       <div className="creator-panel">
         <form className="creator-form" onSubmit={(event) => void generate(event)} noValidate>
-          <label htmlFor="track-link">Track link</label>
+          <label htmlFor="track-link">Music or video link</label>
           <div className="input-wrap">
             <input
               id="track-link"
               type="url"
               inputMode="url"
               autoComplete="url"
-              placeholder="Paste a music link…"
+              placeholder="Paste a music or video link…"
               spellCheck={false}
               value={link}
-              onChange={(event) => { setLink(event.target.value); clearResult(); }}
+              onChange={(event) => {
+                const next = event.target.value;
+                setLink(next);
+                if (!supportsNativeMoment(next)) setMoment("");
+                clearResult();
+              }}
             />
             <button type="button" className="input-paste" onClick={() => void paste()} aria-label="Paste link from clipboard">
               Paste
             </button>
           </div>
 
-          <div className="moment-row">
+          {hasNativeMoment && <div className="moment-row">
             <div className="moment-description">
               <label htmlFor="track-moment">Start at a moment</label>
               <span className="visually-hidden">Optional. Seconds or minutes and seconds.</span>
@@ -135,7 +145,7 @@ export function CreateScreen({ engine }: Props) {
                 maxLength={8}
               />
             </div>
-          </div>
+          </div>}
 
           <button type="submit" className="create-submit" disabled={pending}>
             {pending ? "Creating…" : "Create WaveCode"}

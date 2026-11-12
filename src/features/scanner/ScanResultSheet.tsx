@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { LocatedWaveCode } from "../../domain/wavecode";
-import { isSupportedMusicUrl, musicIdentity, platformLabel } from "../../domain/music-url";
+import { isSupportedMusicUrl, isVideoUrl, musicIdentity, platformLabel } from "../../domain/music-url";
 
 interface Props {
   codes: LocatedWaveCode[];
@@ -23,6 +23,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
   if (!code || !isSupportedMusicUrl(code.url)) return null;
 
   const url = code.url;
+  const video = isVideoUrl(url);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
@@ -39,7 +40,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
         <span className="result-ok">CODE FOUND</span>
         <button className="sheet-dismiss" type="button" onClick={onDismiss} aria-label="Close result"><X size={19} /></button>
       </div>
-      <h2 id="result-title">There's your<br /><em>music.</em></h2>
+      <h2 id="result-title">There's your<br /><em>{video ? "video." : "music."}</em></h2>
       {codes.length > 1 && (
         <div className="result-choices" role="group" aria-label="Choose detected WaveCode">
           {codes.map((item, index) => (
@@ -57,8 +58,8 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
         </div>
       </div>
       <div className="result-buttons">
-        <a className="result-open" href={url} target="_blank" rel="noopener noreferrer">Open track</a>
-        <button type="button" className="result-copy" onClick={() => void copy()} aria-label={copied ? "Link copied" : "Copy track link"}>
+        <a className="result-open" href={url} target="_blank" rel="noopener noreferrer">{video ? "Open video" : "Open track"}</a>
+        <button type="button" className="result-copy" onClick={() => void copy()} aria-label={copied ? "Link copied" : video ? "Copy video link" : "Copy track link"}>
           {copied ? "Copied" : "Copy link"}
         </button>
       </div>

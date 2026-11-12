@@ -2,7 +2,12 @@ const supportedHosts = new Set([
   "music.youtube.com",
   "youtube.com",
   "www.youtube.com",
+  "m.youtube.com",
   "youtu.be",
+  "www.tiktok.com",
+  "tiktok.com",
+  "www.instagram.com",
+  "instagram.com",
   "open.spotify.com",
   "music.apple.com",
   "deezer.com",
@@ -13,6 +18,24 @@ const supportedHosts = new Set([
   "open.qobuz.com",
   "play.qobuz.com",
   "music.amazon.com",
+]);
+
+const videoHosts = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "youtu.be",
+  "www.tiktok.com",
+  "tiktok.com",
+  "www.instagram.com",
+  "instagram.com",
+]);
+
+const noNativeMomentHosts = new Set([
+  "www.tiktok.com",
+  "tiktok.com",
+  "www.instagram.com",
+  "instagram.com",
 ]);
 
 export function isSupportedMusicUrl(value: string): boolean {
@@ -31,12 +54,41 @@ export function isSupportedMusicUrl(value: string): boolean {
   }
 }
 
+export function supportsNativeMoment(value: string): boolean {
+  try {
+    return !noNativeMomentHosts.has(new URL(value.trim()).hostname.toLowerCase());
+  } catch {
+    return true;
+  }
+}
+
+export function isVideoUrl(value: string): boolean {
+  try {
+    return videoHosts.has(new URL(value.trim()).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 export function validateMusicLink(value: string): string | null {
-  if (!value.trim()) return "Paste a music link to get started.";
+  if (!value.trim()) return "Paste a media link to get started.";
   if (value.length > 4096) return "The link is too long.";
   if (!isSupportedMusicUrl(value)) {
-    return "Use a supported HTTPS music link from YouTube Music, Spotify, Apple Music, Deezer, TIDAL, Qobuz or Amazon Music.";
+    try {
+      const host = new URL(value.trim()).hostname.toLowerCase();
+      if (host === "vt.tiktok.com" || host === "vm.tiktok.com") {
+        return "Open the TikTok share link and copy the full video URL. Short redirects cannot be encoded permanently without resolving them.";
+      }
+    } catch {
+      // Fall through to the supported media error.
+    }
+    return "Use a supported HTTPS media link from YouTube, Shorts, TikTok, Instagram Reels or a supported music service.";
   }
+
+  if (!supportsNativeMoment(value) && new URL(value.trim()).searchParams.has("t")) {
+    return "TikTok and Instagram Reels do not support opening a moment through their native links.";
+  }
+
   return null;
 }
 
@@ -65,8 +117,14 @@ export function prettyMoment(total: number): string {
 
 export function platformLabel(value: string): string {
   try {
-    const host = new URL(value).hostname;
-    if (host.includes("youtube") || host === "youtu.be") return "YouTube Music";
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    if (host === "music.youtube.com") return "YouTube Music";
+    if (host === "youtu.be" || host.endsWith("youtube.com")) {
+      return url.pathname.startsWith("/shorts/") ? "YouTube Shorts" : "YouTube";
+    }
+    if (host === "tiktok.com" || host === "www.tiktok.com") return "TikTok";
+    if (host === "instagram.com" || host === "www.instagram.com") return "Instagram Reels";
     if (host.includes("spotify")) return "Spotify";
     if (host.includes("apple")) return "Apple Music";
     if (host.includes("deezer")) return "Deezer";
@@ -76,14 +134,14 @@ export function platformLabel(value: string): string {
   } catch {
     // Invalid links are handled by the codec and are never opened.
   }
-  return "Music link";
+  return "Media link";
 }
 
 export function musicIdentity(value: string): string {
   try {
     const url = new URL(value);
-    return url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).at(-1) || "Track";
+    return url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).at(-1) || "Media";
   } catch {
-    return "Track";
+    return "Media";
   }
 }

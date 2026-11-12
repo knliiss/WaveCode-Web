@@ -18,7 +18,7 @@ export function ScannerScreen({ engine, active }: Props) {
   return (
     <section className="scan-layout" aria-labelledby="scan-heading">
       <div className="heading-block">
-        <h1 id="scan-heading">Find the <span>music.</span></h1>
+        <h1 id="scan-heading">Find the <span>moment.</span></h1>
       </div>
 
       <div className={"scanner-viewport " + (running ? "camera-active" : "")}>
