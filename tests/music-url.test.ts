@@ -37,6 +37,7 @@ describe("video link handling", () => {
       ["https://www.youtube.com/shorts/JGwWNGJdvx8", "YouTube Shorts"],
       ["https://www.tiktok.com/@creator/video/7300873037530795272", "TikTok"],
       ["https://www.tiktok.com/@/video/7300873037530795272", "TikTok"],
+      ["https://vt.tiktok.com/ZSp94BeDn/", "TikTok"],
       ["https://www.instagram.com/reel/DIPPWkUh7Rj/", "Instagram Reels"],
     ] as const) {
       expect(isSupportedMusicUrl(url)).toBe(true);
@@ -52,15 +53,31 @@ describe("video link handling", () => {
     expect(supportsNativeMoment("https://www.youtube.com/shorts/JGwWNGJdvx8")).toBe(true);
     expect(supportsNativeMoment("https://www.youtube.com/watch?v=JGwWNGJdvx8")).toBe(true);
     expect(supportsNativeMoment("https://www.tiktok.com/@creator/video/7300873037530795272")).toBe(false);
+    expect(supportsNativeMoment("https://vt.tiktok.com/ZSp94BeDn/")).toBe(false);
+    expect(validateMusicLink("https://vt.tiktok.com/ZSp94BeDn/?t=15")).toContain("do not support");
     expect(supportsNativeMoment("https://www.instagram.com/reel/DIPPWkUh7Rj/")).toBe(false);
     expect(validateMusicLink("https://www.instagram.com/reel/DIPPWkUh7Rj/?t=15")).toContain("do not support");
   });
 
-  it("rejects lookalike video origins and explains short TikTok redirects", () => {
+  it("rejects lookalike video origins and invalid TikTok shortcodes", () => {
     expect(isSupportedMusicUrl("https://www.tiktok.com.evil.test/@x/video/7300873037530795272")).toBe(false);
     expect(isSupportedMusicUrl("https://www.instagram.com@evil.test/reel/DIPPWkUh7Rj/")).toBe(false);
     expect(isSupportedMusicUrl("http://www.youtube.com/shorts/JGwWNGJdvx8")).toBe(false);
-    expect(validateMusicLink("https://vt.tiktok.com/ZSabc123/")).toContain("full video URL");
+    expect(validateMusicLink("https://vt.tiktok.com/ZSp94BeDn/")).toBeNull();
+    expect(validateMusicLink("https://vt.tiktok.com/ZSp94BeDn/?_t=1")).toBeNull();
+    expect(musicIdentity("https://vt.tiktok.com/ZSp94BeDn/")).toBe("ZSp94BeDn");
+    for (const invalid of [
+      "https://vt.tiktok.com/",
+      "https://vt.tiktok.com/ZSp94BeDn-/",
+      "https://vt.tiktok.com/ZSp94BeDn/extra",
+      "https://vt.tiktok.com/12345678901234567/",
+      "https://vt.tiktok.com.evil.example/ZSp94BeDn/",
+      "https://vt.tiktok.com@evil.example/ZSp94BeDn/",
+      "http://vt.tiktok.com/ZSp94BeDn/",
+    ]) {
+      expect(isSupportedMusicUrl(invalid)).toBe(false);
+    }
+    expect(validateMusicLink("https://vm.tiktok.com/ZSp94BeDn/")).toContain("vt.tiktok.com");
   });
 });
 
