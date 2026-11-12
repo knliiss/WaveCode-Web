@@ -9,13 +9,13 @@ test("generate, download and decode the same WaveCode entirely in the browser", 
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Find the music/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Find the moment/ })).toBeVisible();
 
   const navigation = page.getByRole("navigation", { name: "Primary navigation" });
   await navigation.getByRole("button", { name: /Create/ }).click();
 
   await expect(page.getByRole("heading", { name: /Make it yours/ })).toBeVisible();
-  await page.getByRole("textbox", { name: "Track link" }).fill(TRACK);
+  await page.getByRole("textbox", { name: "Music or video link" }).fill(TRACK);
   await page.getByRole("textbox", { name: "Start at a moment" }).fill("00:59");
   await page.getByRole("button", { name: "Create WaveCode" }).click();
 
