@@ -85,3 +85,30 @@ for (const item of cases) {
       .toHaveAttribute("target", "_blank");
   });
 }
+
+test("V2 short TikTok share URL is lossless without resolving redirects", async ({ page }) => {
+  const link = "https://vt.tiktok.com/ZSp94BeDn/";
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "V2 · single" }).click();
+  await page.getByRole("textbox", { name: "Music or video link" }).fill(link);
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Save PNG" }).click(),
+  ]);
+  const path = await download.path();
+  if (!path) throw new Error("No V2 TikTok WaveCode PNG was exported.");
+
+  await nav.getByRole("button", { name: "Scan" }).click();
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "tiktok-v2.png",
+    mimeType: "image/png",
+    buffer: readFileSync(path),
+  });
+  await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.getByRole("link", { name: "Open video" })).toHaveAttribute("href", link);
+});

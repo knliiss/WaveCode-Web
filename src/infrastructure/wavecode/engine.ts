@@ -4,6 +4,7 @@ import type {
   GeneratedWaveCode,
   LocatedWaveCode,
   WaveCodeEngine,
+  V2Geometry,
 } from "../../domain/wavecode";
 
 type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
@@ -63,13 +64,40 @@ export class BrowserWaveCodeEngine implements WaveCodeEngine {
     return this.request<LocatedWaveCode[]>({ action: "scan", image: input }, [input.buffer]);
   }
 
-  generate(url: string, moment?: number): Promise<GeneratedWaveCode> {
+  generate(
+    url: string,
+    moment?: number,
+    version: 1 | 2 = 1,
+    geometry?: V2Geometry,
+  ): Promise<GeneratedWaveCode> {
     return this.request<GeneratedWaveCode>({
       action: "generate",
       url,
       moment,
+      version,
+      geometry,
       width: 960,
       height: 240,
+    });
+  }
+
+  generateDual(
+    spotifyId: string,
+    youtubeMusicId: string,
+    moment?: number,
+    geometry: V2Geometry = {
+      payloadHeight: 210,
+      logoHeight: 210,
+      payloadCenterGap: 14.5,
+      logoPayloadGap: 25.2,
+    },
+  ): Promise<GeneratedWaveCode> {
+    return this.request<GeneratedWaveCode>({
+      action: "generate-dual",
+      spotifyId,
+      youtubeMusicId,
+      moment,
+      geometry,
     });
   }
 

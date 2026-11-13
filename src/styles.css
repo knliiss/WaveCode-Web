@@ -469,3 +469,62 @@ img { display: block; max-width: 100%; }
 @media (forced-colors: active) {
   .wavecode-preview { color: CanvasText; forced-color-adjust: auto; }
 }
+
+/* Opt-in V2 retains the V1 layout while exposing geometric controls. */
+.format-switch {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px; background: #efefed; padding: 4px;
+  border: 1px solid #e7e7e3; border-radius: 11px; margin-bottom: 23px;
+}
+.format-switch button {
+  border: 0; background: transparent; color: #777771;
+  padding: 10px 4px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+}
+.format-switch button.selected {
+  color: #131313; background: white; box-shadow: 0 1px 7px rgba(0,0,0,.07);
+}
+.creator-form > .input-wrap + label { margin-top: 17px; }
+.creator-hint {
+  margin: 8px 2px 15px; line-height: 1.5;
+  color: #797973; font-size: 12px;
+}
+.creator-geometry {
+  margin: 0 0 20px; padding: 15px 0 4px;
+  border-top: 1px solid var(--border);
+}
+.creator-geometry summary {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; cursor: pointer; font-size: 13px; font-weight: 700;
+  list-style-position: inside;
+}
+.creator-geometry summary span { font-size: 11px; font-weight: 500; color: var(--muted); }
+.creator-geometry[open] summary { margin-bottom: 19px; }
+.creator-form label.geometry-control { display: block; margin: 0 0 16px; }
+.geometry-control > span {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: #676762; font-weight: 500; margin-bottom: 8px;
+}
+.geometry-control strong { font-variant-numeric: tabular-nums; color: var(--ink); }
+.geometry-control input {
+  display: block; width: 100%; margin: 0; accent-color: var(--ink);
+}
+.creator-geometry p { font-size: 11px; line-height: 1.5; color: var(--muted); }
+.generated-links {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;
+}
+.generated-links a {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 13px; font-size: 12px; font-weight: 700;
+}
+.dual-results { display: flex; flex-direction: column; gap: 15px; }
+.dual-result + .dual-result { padding-top: 5px; }
+.dual-result .result-track { border-top: 1px solid var(--border); }
+.dual-result .result-open { justify-content: center; }
+@media (prefers-color-scheme: dark) {
+  .format-switch { background: #2c2c29; border-color: #41413d; }
+  .format-switch button { color: #b5b5ac; }
+  .format-switch button.selected { background: #eeeeea; color: #151514; }
+  .creator-hint, .geometry-control > span { color: var(--muted); }
+  .generated-links a { border-color: #4a4a45; }
+}
