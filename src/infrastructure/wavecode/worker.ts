@@ -5,6 +5,7 @@ import type {
   GeneratedWaveCode,
   LocatedWaveCode,
   V2Geometry,
+  ScanMode,
 } from "../../domain/wavecode";
 
 type WasmModule = typeof import("../../generated/wavecode/wavecode_wasm.js");
@@ -56,7 +57,7 @@ function v2Located(value: V2Decoded): LocatedWaveCode | null {
   };
 }
 
-function scan(wasm: WasmModule, image: Uint8Array): LocatedWaveCode[] {
+function scan(wasm: WasmModule, image: Uint8Array, mode: ScanMode = "all"): LocatedWaveCode[] {
   const found: LocatedWaveCode[] = [];
   try {
     const candidate = v2Located(JSON.parse(wasm.v2_scan_image(image)) as V2Decoded);
@@ -64,7 +65,7 @@ function scan(wasm: WasmModule, image: Uint8Array): LocatedWaveCode[] {
   } catch {
     // V2 finder is opt-in: V1 frames are not V2 optical marks.
   }
-  try {
+  if (mode === "all") try {
     const legacy = JSON.parse(wasm.scan_all(image)) as LocatedWaveCode[];
     found.push(...legacy.filter((item) =>
       typeof item.url === "string" &&
@@ -115,7 +116,7 @@ context.onmessage = async (event: MessageEvent<EngineRequest>) => {
     if (request.action === "initialize") {
       value = true;
     } else if (request.action === "scan") {
-      value = scan(wasm, request.image);
+      value = scan(wasm, request.image, request.mode);
     } else if (request.action === "generate-dual") {
       value = renderV2(
         wasm,

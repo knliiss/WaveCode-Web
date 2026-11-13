@@ -25,6 +25,7 @@ export interface GeneratedWaveCode {
 }
 
 export type ScanSource = "camera" | "image";
+export type ScanMode = "all" | "v2";
 
 export interface V2Geometry {
   payloadHeight: number;
@@ -35,7 +36,7 @@ export interface V2Geometry {
 
 export type EngineRequest =
   | { id: number; action: "initialize" }
-  | { id: number; action: "scan"; image: Uint8Array }
+  | { id: number; action: "scan"; image: Uint8Array; mode?: ScanMode }
   | {
       id: number;
       action: "generate";
@@ -62,7 +63,7 @@ export type EngineResponse =
 
 export interface WaveCodeEngine {
   initialize(): Promise<void>;
-  scan(image: Uint8Array): Promise<LocatedWaveCode[]>;
+  scan(image: Uint8Array, mode?: ScanMode): Promise<LocatedWaveCode[]>;
   generate(url: string, moment?: number, version?: 1 | 2, geometry?: V2Geometry): Promise<GeneratedWaveCode>;
   generateDual(
     firstUrl: string,

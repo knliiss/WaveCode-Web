@@ -5,6 +5,7 @@ import type {
   LocatedWaveCode,
   WaveCodeEngine,
   V2Geometry,
+  ScanMode,
 } from "../../domain/wavecode";
 
 type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
@@ -58,10 +59,9 @@ export class BrowserWaveCodeEngine implements WaveCodeEngine {
     return this.request<void>({ action: "initialize" });
   }
 
-  scan(image: Uint8Array): Promise<LocatedWaveCode[]> {
-    // A copy keeps the caller's image valid if the browser transfers the buffer.
+  scan(image: Uint8Array, mode: ScanMode = "all"): Promise<LocatedWaveCode[]> {
     const input = new Uint8Array(image);
-    return this.request<LocatedWaveCode[]>({ action: "scan", image: input }, [input.buffer]);
+    return this.request<LocatedWaveCode[]>({ action: "scan", image: input, mode }, [input.buffer]);
   }
 
   generate(
