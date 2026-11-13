@@ -25,6 +25,7 @@ export function WaveCodePreview({ svg }: Props) {
       {geometry.capsules.map((capsule, index) => (
         <rect
           key={index}
+          className={capsule.kind}
           x={capsule.x}
           y={capsule.y}
           width={capsule.width}
