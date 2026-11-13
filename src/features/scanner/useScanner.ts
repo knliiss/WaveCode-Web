@@ -54,10 +54,13 @@ interface TorchCapabilities extends MediaTrackCapabilities {
 const delay = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 function codeCandidates(found: LocatedWaveCode[]): LocatedWaveCode[] {
-  const urls = new Set<string>();
+  const identities = new Set<string>();
   return found.filter((code) => {
-    if (!isSupportedMusicUrl(code.url) || urls.has(code.url)) return false;
-    urls.add(code.url);
+    const links = code.urls?.length ? code.urls : [code.url];
+    if (!links.every(isSupportedMusicUrl)) return false;
+    const identity = links.join("\u0000");
+    if (identities.has(identity)) return false;
+    identities.add(identity);
     return true;
   });
 }
