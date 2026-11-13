@@ -82,21 +82,23 @@ export class BrowserWaveCodeEngine implements WaveCodeEngine {
   }
 
   generateDual(
-    spotifyId: string,
-    youtubeMusicId: string,
-    moment?: number,
+    firstUrl: string,
+    secondUrl: string,
+    firstMoment?: number,
+    secondMoment?: number,
     geometry: V2Geometry = {
-      payloadHeight: 210,
-      logoHeight: 210,
-      payloadCenterGap: 14.5,
-      logoPayloadGap: 25.2,
+      payloadHeight: 172,
+      logoHeight: 125,
+      payloadCenterGap: 11,
+      logoPayloadGap: 20,
     },
   ): Promise<GeneratedWaveCode> {
     return this.request<GeneratedWaveCode>({
       action: "generate-dual",
-      spotifyId,
-      youtubeMusicId,
-      moment,
+      firstUrl,
+      secondUrl,
+      firstMoment,
+      secondMoment,
       geometry,
     });
   }

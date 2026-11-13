@@ -88,7 +88,7 @@ export function previewGeometryFromSvg(source: string): WaveCodePreviewGeometry 
   const legacyV1 = capsules.length === 72 && guardCount === 4 && wCount === 0;
   const capsuleV2 = wCount === 22 && guardCount === 0 &&
     payloadUpperCount === payloadLowerCount && payloadUpperCount >= 9 &&
-    payloadUpperCount <= 34 && capsules.length === 22 + payloadUpperCount * 2;
+    payloadUpperCount <= 57 && capsules.length === 22 + payloadUpperCount * 2;
   if (backgroundCount > 1 || (!legacyV1 && !capsuleV2)) return null;
   return { width, height, viewBox, capsules };
 }
