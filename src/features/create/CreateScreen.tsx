@@ -1,34 +1,35 @@
 import { PlatformBadge } from "../../components/PlatformBadge";
 import { platformFromUrl } from "../../domain/platform";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent, type FormEvent } from "react";
 import type { GeneratedWaveCode, V2Geometry, WaveCodeEngine } from "../../domain/wavecode";
 import {
-  parseDualTrackIds, parseMoment, platformLabel, supportsNativeMoment, validateMusicLink,
+  parseMoment, platformLabel, supportsNativeMoment, validateMusicLink,
 } from "../../domain/music-url";
+import { normalizeMediaInput } from "../../domain/normalize-media-input";
 import { copyPngImage } from "../../infrastructure/clipboard";
 import { downloadBytes, downloadSvg } from "../../infrastructure/download";
 import { WaveCodePreview } from "./WaveCodePreview";
 
 interface Props { engine: WaveCodeEngine; }
 type CopyState = "idle" | "copying" | "copied";
-type CreationMode = "v1" | "v2" | "dual";
+type CreationMode = "single" | "dual";
 
 export function CreateScreen({ engine }: Props) {
-  const [mode, setMode] = useState<CreationMode>("v1");
+  const [mode, setMode] = useState<CreationMode>("single");
   const [link, setLink] = useState("");
   const [secondLink, setSecondLink] = useState("");
   const [moment, setMoment] = useState("");
-  const [payloadHeight, setPayloadHeight] = useState(210);
-  const [logoHeight, setLogoHeight] = useState(210);
-  const [centerGap, setCenterGap] = useState(14.5);
-  const [blockGap, setBlockGap] = useState(25.2);
+  const [secondMoment, setSecondMoment] = useState("");
+  const [payloadHeight, setPayloadHeight] = useState(172);
+  const [logoHeight, setLogoHeight] = useState(125);
+  const [centerGap, setCenterGap] = useState(11);
+  const [blockGap, setBlockGap] = useState(20);
   const [result, setResult] = useState<GeneratedWaveCode | null>(null);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const jobRef = useRef(0);
   const copyResetRef = useRef<number | undefined>(undefined);
-  const hasNativeMoment = mode === "dual" || supportsNativeMoment(link);
   const geometry: V2Geometry = {
     payloadHeight,
     logoHeight,
@@ -47,29 +48,81 @@ export function CreateScreen({ engine }: Props) {
     setMessage("");
   };
 
+  const setRawLink = (value: string, second: boolean) => {
+    if (second) {
+      setSecondLink(value);
+      setSecondMoment("");
+    } else {
+      setLink(value);
+      setMoment("");
+    }
+    clearResult();
+  };
+
+  const normalizeLink = (value: string, second: boolean, resetMoment = false) => {
+    try {
+      const normalized = normalizeMediaInput(value);
+      if (second) {
+        setSecondLink(normalized.link);
+        if (normalized.moment || resetMoment) setSecondMoment(normalized.moment);
+      } else {
+        setLink(normalized.link);
+        if (normalized.moment || resetMoment) setMoment(normalized.moment);
+      }
+      clearResult();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The media link is invalid.");
+    }
+  };
+
+  const handlePaste = (event: ClipboardEvent<HTMLInputElement>, second: boolean) => {
+    const text = event.clipboardData.getData("text").trim();
+    if (text.startsWith("https://")) {
+      event.preventDefault();
+      normalizeLink(text, second, true);
+    }
+  };
+
+  const paste = async (second: boolean) => {
+    try {
+      normalizeLink(await navigator.clipboard.readText(), second, true);
+    } catch {
+      setMessage("Clipboard access isn't available. Paste the link manually.");
+    }
+  };
+
   const generate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const dualIds = mode === "dual" ? parseDualTrackIds(link, secondLink) : null;
-    if (mode === "dual" && !dualIds) {
-      setMessage("Dual needs a Spotify track URL and an independent YouTube Music watch URL.");
-      return;
-    }
-    if (mode !== "dual") {
-      const invalid = validateMusicLink(link);
-      if (invalid) {
-        setMessage(invalid);
+    let firstLink: string;
+    let otherLink: string | undefined;
+    let firstSeconds: number | undefined;
+    let otherSeconds: number | undefined;
+
+    try {
+      const first = normalizeMediaInput(link);
+      const second = mode === "dual" ? normalizeMediaInput(secondLink) : undefined;
+      const invalidFirst = validateMusicLink(first.link);
+      const invalidSecond = second ? validateMusicLink(second.link) : null;
+      if (invalidFirst || invalidSecond) {
+        setMessage(invalidFirst ?? invalidSecond!);
         return;
       }
-    }
-
-    let seconds: number | undefined;
-    try {
-      if (!hasNativeMoment && moment.trim()) {
-        throw new Error("This platform cannot open videos at a specific moment.");
+      firstLink = first.link;
+      otherLink = second?.link;
+      if (!supportsNativeMoment(firstLink) && (moment.trim() || first.moment)) {
+        throw new Error("The first platform does not support native timestamps.");
       }
-      seconds = hasNativeMoment ? parseMoment(moment) : undefined;
+      if (otherLink && !supportsNativeMoment(otherLink) && (secondMoment.trim() || second?.moment)) {
+        throw new Error("The second platform does not support native timestamps.");
+      }
+      firstSeconds = parseMoment(first.moment || moment);
+      otherSeconds = second ? parseMoment(second.moment || secondMoment) : undefined;
+      setLink(firstLink);
+      if (second) setSecondLink(second.link);
+      if (first.moment) setMoment(first.moment);
+      if (second?.moment) setSecondMoment(second.moment);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Invalid timestamp.");
+      setMessage(error instanceof Error ? error.message : "The media link is invalid.");
       return;
     }
 
@@ -78,11 +131,9 @@ export function CreateScreen({ engine }: Props) {
     setMessage("");
     try {
       await engine.initialize();
-      const generated = dualIds
-        ? await engine.generateDual(
-          dualIds.spotifyId, dualIds.youtubeMusicId, seconds, geometry,
-        )
-        : await engine.generate(link.trim(), seconds, mode === "v2" ? 2 : 1, geometry);
+      const generated = otherLink !== undefined
+        ? await engine.generateDual(firstLink, otherLink, firstSeconds, otherSeconds, geometry)
+        : await engine.generate(firstLink, firstSeconds, 2, geometry);
       if (job !== jobRef.current) return;
       setResult(generated);
       setCopyState("idle");
@@ -94,21 +145,6 @@ export function CreateScreen({ engine }: Props) {
         : "Unable to encode this link. Make sure it points to supported media.");
     } finally {
       if (job === jobRef.current) setPending(false);
-    }
-  };
-
-  const paste = async (second = false) => {
-    try {
-      const text = (await navigator.clipboard.readText()).trim();
-      if (second) {
-        setSecondLink(text);
-      } else {
-        setLink(text);
-        if (!supportsNativeMoment(text)) setMoment("");
-      }
-      clearResult();
-    } catch {
-      setMessage("Clipboard access isn't available. Paste the link manually.");
     }
   };
 
@@ -138,11 +174,10 @@ export function CreateScreen({ engine }: Props) {
 
       <div className="creator-panel">
         <form className="creator-form" onSubmit={(event) => void generate(event)} noValidate>
-          <div className="format-switch" role="group" aria-label="WaveCode format">
+          <div className="format-switch format-switch--two" role="group" aria-label="WaveCode format">
             {([
-              ["v1", "V1 · classic"],
-              ["v2", "V2 · single"],
-              ["dual", "V2 · dual"],
+              ["single", "Single link"],
+              ["dual", "Dual link"],
             ] as const).map(([value, label]) => (
               <button
                 type="button"
@@ -154,98 +189,111 @@ export function CreateScreen({ engine }: Props) {
             ))}
           </div>
 
-          <label htmlFor="track-link">{mode === "dual" ? "Spotify track link" : "Music or video link"}</label>
+          <label htmlFor="track-link">{mode === "dual" ? "First media link" : "Music or video link"}</label>
           <div className="input-wrap">
-            {mode === "dual" ? (
-              <PlatformBadge url="https://open.spotify.com/track/" size="small" />
-            ) : (
-              platformFromUrl(link) && <PlatformBadge url={link} size="small" />
-            )}
+            {platformFromUrl(link) && <PlatformBadge url={link} size="small" />}
             <input
               id="track-link"
               type="url"
               inputMode="url"
               autoComplete="url"
-              placeholder={mode === "dual" ? "Spotify track URL…" : "Paste a music or video link…"}
+              placeholder="Paste any supported music or video link…"
               spellCheck={false}
               value={link}
-              onChange={(event) => {
-                const next = event.target.value;
-                setLink(next);
-                if (!supportsNativeMoment(next)) setMoment("");
-                clearResult();
-              }}
+              onChange={(event) => setRawLink(event.target.value, false)}
+              onBlur={() => { if (link.startsWith("https://")) normalizeLink(link, false); }}
+              onPaste={(event) => handlePaste(event, false)}
             />
-            <button type="button" className="input-paste" onClick={() => void paste()} aria-label="Paste link from clipboard">
+            <button type="button" className="input-paste" onClick={() => void paste(false)} aria-label="Paste link from clipboard">
               Paste
             </button>
           </div>
+          {supportsNativeMoment(link) && (
+            <div className="moment-row">
+              <div className="moment-description">
+                <label htmlFor="track-moment">{mode === "dual" ? "First start moment" : "Start at a moment"}</label>
+                <span className="creator-moment-hint">Optional · extracted from a pasted link</span>
+              </div>
+              <div className="moment-field">
+                <input
+                  id="track-moment"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="00:00"
+                  value={moment}
+                  onChange={(event) => { setMoment(event.target.value); clearResult(); }}
+                  maxLength={8}
+                />
+              </div>
+            </div>
+          )}
 
           {mode === "dual" && (
             <>
-              <label htmlFor="second-link">YouTube Music link</label>
+              <label htmlFor="second-link">Second media link</label>
               <div className="input-wrap">
-                <PlatformBadge url="https://music.youtube.com/watch" size="small" />
+                {platformFromUrl(secondLink) && <PlatformBadge url={secondLink} size="small" />}
                 <input
                   id="second-link"
                   type="url"
                   inputMode="url"
                   autoComplete="url"
                   spellCheck={false}
-                  placeholder="YouTube Music watch URL…"
+                  placeholder="Any other supported link, including the same platform…"
                   value={secondLink}
-                  onChange={(event) => { setSecondLink(event.target.value); clearResult(); }}
+                  onChange={(event) => setRawLink(event.target.value, true)}
+                  onBlur={() => { if (secondLink.startsWith("https://")) normalizeLink(secondLink, true); }}
+                  onPaste={(event) => handlePaste(event, true)}
                 />
-                <button type="button" className="input-paste" onClick={() => void paste(true)} aria-label="Paste YouTube Music link from clipboard">
+                <button type="button" className="input-paste" onClick={() => void paste(true)} aria-label="Paste second link from clipboard">
                   Paste
                 </button>
               </div>
-              <p className="creator-hint">Both original IDs are stored losslessly. No cross-platform matching service.</p>
+              {supportsNativeMoment(secondLink) && (
+                <div className="moment-row">
+                  <div className="moment-description">
+                    <label htmlFor="second-moment">Second start moment</label>
+                    <span className="creator-moment-hint">Independent from the first link</span>
+                  </div>
+                  <div className="moment-field">
+                    <input
+                      id="second-moment"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00:00"
+                      value={secondMoment}
+                      onChange={(event) => { setSecondMoment(event.target.value); clearResult(); }}
+                      maxLength={8}
+                    />
+                  </div>
+                </div>
+              )}
+              <p className="creator-hint">Both links are stored independently, without matching tracks across platforms.</p>
             </>
           )}
 
-          {hasNativeMoment && <div className="moment-row">
-            <div className="moment-description">
-              <label htmlFor="track-moment">Start at a moment</label>
-              <span className="visually-hidden">Optional. Seconds or minutes and seconds.</span>
-            </div>
-            <div className="moment-field">
-              <input
-                id="track-moment"
-                type="text"
-                inputMode="numeric"
-                placeholder="00:00"
-                value={moment}
-                onChange={(event) => { setMoment(event.target.value); clearResult(); }}
-                maxLength={8}
-              />
-            </div>
-          </div>}
-
-          {mode !== "v1" && (
-            <details className="creator-geometry">
-              <summary>Adjust proportions <span>Visual only</span></summary>
-              {([
-                ["W size", logoHeight, setLogoHeight, 100, 400],
-                ["Payload height", payloadHeight, setPayloadHeight, 110, 320],
-                ["Middle gap", centerGap, setCenterGap, 4, 80],
-                ["W-to-payload gap", blockGap, setBlockGap, 4, 150],
-              ] as const).map(([label, value, setter, min, max]) => (
-                <label className="geometry-control" key={label}>
-                  <span>{label}<strong>{Math.round(value)} px</strong></span>
-                  <input
-                    aria-label={label}
-                    type="range"
-                    min={min}
-                    max={max}
-                    value={value}
-                    onChange={(event) => { setter(Number(event.target.value)); clearResult(); }}
-                  />
-                </label>
-              ))}
-              <p>Changing the W does not rescale the data. No dimensions are encoded.</p>
-            </details>
-          )}
+          <details className="creator-geometry">
+            <summary>Adjust proportions <span>Visual only</span></summary>
+            {([
+              ["W size", logoHeight, setLogoHeight, 90, 300],
+              ["Payload height", payloadHeight, setPayloadHeight, 110, 320],
+              ["Middle gap", centerGap, setCenterGap, 4, 80],
+              ["W-to-payload gap", blockGap, setBlockGap, 4, 150],
+            ] as const).map(([label, value, setter, min, max]) => (
+              <label className="geometry-control" key={label}>
+                <span>{label}<strong>{Math.round(value)} px</strong></span>
+                <input
+                  aria-label={label}
+                  type="range"
+                  min={min}
+                  max={max}
+                  value={value}
+                  onChange={(event) => { setter(Number(event.target.value)); clearResult(); }}
+                />
+              </label>
+            ))}
+            <p>Dimensions and gaps do not encode information. Keep every capsule legible when printing.</p>
+          </details>
 
           <button type="submit" className="create-submit" disabled={pending}>
             {pending ? "Creating…" : "Create WaveCode"}
@@ -257,8 +305,8 @@ export function CreateScreen({ engine }: Props) {
         <div className="output-panel">
           <WaveCodePreview svg={result.svg} />
           <div className="generated-links" aria-label="Encoded destinations">
-            {(result.urls?.length ? result.urls : [result.canonicalUrl]).map((url) => (
-              <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+            {(result.urls?.length ? result.urls : [result.canonicalUrl]).map((url, index) => (
+              <a key={index} href={url} target="_blank" rel="noopener noreferrer">
                 <PlatformBadge url={url} size="small" />
                 <span>Open {platformLabel(url)}</span>
               </a>
