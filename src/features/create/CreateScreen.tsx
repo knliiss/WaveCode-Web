@@ -1,3 +1,5 @@
+import { PlatformBadge } from "../../components/PlatformBadge";
+import { platformFromUrl } from "../../domain/platform";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { GeneratedWaveCode, V2Geometry, WaveCodeEngine } from "../../domain/wavecode";
 import {
@@ -154,6 +156,11 @@ export function CreateScreen({ engine }: Props) {
 
           <label htmlFor="track-link">{mode === "dual" ? "Spotify track link" : "Music or video link"}</label>
           <div className="input-wrap">
+            {mode === "dual" ? (
+              <PlatformBadge url="https://open.spotify.com/track/" size="small" />
+            ) : (
+              platformFromUrl(link) && <PlatformBadge url={link} size="small" />
+            )}
             <input
               id="track-link"
               type="url"
@@ -178,6 +185,7 @@ export function CreateScreen({ engine }: Props) {
             <>
               <label htmlFor="second-link">YouTube Music link</label>
               <div className="input-wrap">
+                <PlatformBadge url="https://music.youtube.com/watch" size="small" />
                 <input
                   id="second-link"
                   type="url"
@@ -248,15 +256,14 @@ export function CreateScreen({ engine }: Props) {
       {result && (
         <div className="output-panel">
           <WaveCodePreview svg={result.svg} />
-          {result.urls && result.urls.length > 1 && (
-            <div className="generated-links">
-              {result.urls.map((url) => (
-                <a key={url} href={url} target="_blank" rel="noopener noreferrer">
-                  {platformLabel(url)}
-                </a>
-              ))}
-            </div>
-          )}
+          <div className="generated-links" aria-label="Encoded destinations">
+            {(result.urls?.length ? result.urls : [result.canonicalUrl]).map((url) => (
+              <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                <PlatformBadge url={url} size="small" />
+                <span>Open {platformLabel(url)}</span>
+              </a>
+            ))}
+          </div>
           <div className="export-actions">
             <button type="button" className="export-primary" onClick={() => downloadSvg(result.svg, "wavecode.svg")}>Save SVG</button>
             <button type="button" onClick={() => downloadBytes(result.png, "wavecode.png", "image/png")}>Save PNG</button>
