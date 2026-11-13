@@ -19,6 +19,9 @@ const capsuleClasses = new Set([
   "wavecode-lower",
   "wavecode-guard-upper",
   "wavecode-guard-lower",
+  "w-capsule",
+  "data-upper",
+  "data-lower",
 ]);
 
 function numericAttribute(element: Element, name: string): number | null {
@@ -47,6 +50,9 @@ export function previewGeometryFromSvg(source: string): WaveCodePreviewGeometry 
   const capsules: WaveCodeCapsule[] = [];
   let backgroundCount = 0;
   let guardCount = 0;
+  let wCount = 0;
+  let payloadUpperCount = 0;
+  let payloadLowerCount = 0;
 
   for (const element of Array.from(root.children)) {
     if (element.localName !== "rect" || element.namespaceURI !== svgNamespace) return null;
@@ -74,8 +80,15 @@ export function previewGeometryFromSvg(source: string): WaveCodePreviewGeometry 
 
     capsules.push({ x, y, width: barWidth, height: barHeight, radius });
     if (capsuleClass.startsWith("wavecode-guard-")) guardCount += 1;
+    if (capsuleClass === "w-capsule") wCount += 1;
+    if (capsuleClass === "data-upper") payloadUpperCount += 1;
+    if (capsuleClass === "data-lower") payloadLowerCount += 1;
   }
 
-  if (backgroundCount > 1 || capsules.length !== 72 || guardCount !== 4) return null;
+  const legacyV1 = capsules.length === 72 && guardCount === 4 && wCount === 0;
+  const capsuleV2 = wCount === 22 && guardCount === 0 &&
+    payloadUpperCount === payloadLowerCount && payloadUpperCount >= 9 &&
+    payloadUpperCount <= 34 && capsules.length === 22 + payloadUpperCount * 2;
+  if (backgroundCount > 1 || (!legacyV1 && !capsuleV2)) return null;
   return { width, height, viewBox, capsules };
 }
