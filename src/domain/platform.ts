@@ -16,7 +16,7 @@ const brands = {
   appleMusic: { id: "apple-music", label: "Apple Music", color: "#ee3855", icon: "/platforms/applemusic.svg" },
   deezer: { id: "deezer", label: "Deezer", color: "#7a35be", icon: "/platforms/deezer.svg" },
   tidal: { id: "tidal", label: "TIDAL", color: "#161616", icon: "/platforms/tidal.svg" },
-  qobuz: { id: "qobuz", label: "Qobuz", color: "#202020", fallback: "Q" },
+  qobuz: { id: "qobuz", label: "Qobuz", color: "#202020", icon: "/platforms/qobuz.svg" },
   amazonMusic: { id: "amazon-music", label: "Amazon Music", color: "#087da4", fallback: "a" },
 } as const satisfies Record<string, PlatformBrand>;
 
