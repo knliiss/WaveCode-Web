@@ -12,10 +12,14 @@ async function renderCode(page: import("@playwright/test").Page) {
   return preview;
 }
 
-test("transparent native SVG contains exactly the 72 official WaveCode rails", async ({ page }, testInfo) => {
+test("transparent native V2 SVG contains a 22-capsule W and valid data rails", async ({ page }, testInfo) => {
   const preview = await renderCode(page);
 
-  await expect(preview.locator("rect")).toHaveCount(72);
+  await expect(preview.locator(".w-capsule")).toHaveCount(22);
+  await expect.poll(() => preview.locator(".data-upper").count()).toBeGreaterThan(9);
+  const rails = await preview.locator(".data-upper").count();
+  await expect(preview.locator(".data-lower")).toHaveCount(rails);
+  await expect(preview.locator("rect")).toHaveCount(22 + rails * 2);
   await expect(preview.locator("image, foreignObject, canvas")).toHaveCount(0);
   await expect(preview.locator("img")).toHaveCount(0);
   await expect(page.locator(".output-stage")).toHaveCount(0);
@@ -27,7 +31,14 @@ test("transparent native SVG contains exactly the 72 official WaveCode rails", a
     color: getComputedStyle(svg).color,
   }));
 
-  expect(geometry.viewBox).toBe("0 0 960.000000 240.000000");
+  const bounds = geometry.viewBox?.split(" ").map(Number) ?? [];
+  expect(bounds).toHaveLength(4);
+  expect(bounds[0]).toBe(0);
+  expect(bounds[1]).toBe(0);
+  expect(bounds[2]).toBeGreaterThan(0);
+  expect(bounds[2]).toBeLessThan(960);
+  expect(bounds[3]).toBeGreaterThan(0);
+  expect(bounds[3]).toBeLessThan(240);
   expect(geometry.background).toBe("rgba(0, 0, 0, 0)");
   expect(geometry.fill).toBe(geometry.color);
 
@@ -79,7 +90,7 @@ test("code preview survives a live light/dark preference change", async ({ page 
 
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(preview).toBeVisible();
-  await expect(preview.locator("rect")).toHaveCount(72);
+  await expect(preview.locator(".w-capsule")).toHaveCount(22);
 
   const newFill = await preview.locator("rect").first().evaluate((rect) => getComputedStyle(rect).fill);
   expect(newFill).not.toBe(originalFill);

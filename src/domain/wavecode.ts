@@ -49,9 +49,10 @@ export type EngineRequest =
   | {
       id: number;
       action: "generate-dual";
-      spotifyId: string;
-      youtubeMusicId: string;
-      moment?: number;
+      firstUrl: string;
+      secondUrl: string;
+      firstMoment?: number;
+      secondMoment?: number;
       geometry: V2Geometry;
     };
 
@@ -64,9 +65,10 @@ export interface WaveCodeEngine {
   scan(image: Uint8Array): Promise<LocatedWaveCode[]>;
   generate(url: string, moment?: number, version?: 1 | 2, geometry?: V2Geometry): Promise<GeneratedWaveCode>;
   generateDual(
-    spotifyId: string,
-    youtubeMusicId: string,
-    moment?: number,
+    firstUrl: string,
+    secondUrl: string,
+    firstMoment?: number,
+    secondMoment?: number,
     geometry?: V2Geometry,
   ): Promise<GeneratedWaveCode>;
 }

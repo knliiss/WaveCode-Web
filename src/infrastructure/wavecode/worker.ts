@@ -19,10 +19,10 @@ const context = self as unknown as DedicatedWorkerGlobalScope;
 let wasmPromise: Promise<WasmModule> | undefined;
 
 const defaultGeometry: V2Geometry = {
-  payloadHeight: 210,
-  logoHeight: 210,
-  payloadCenterGap: 14.5,
-  logoPayloadGap: 25.2,
+  payloadHeight: 172,
+  logoHeight: 125,
+  payloadCenterGap: 11,
+  logoPayloadGap: 20,
 };
 
 function wasmEngine(): Promise<WasmModule> {
@@ -31,7 +31,8 @@ function wasmEngine(): Promise<WasmModule> {
     const file = await import("../../generated/wavecode/wavecode_wasm_bg.wasm?url");
     await wasm.default({ module_or_path: file.default });
     if (wasm.abi_version() !== 1 || wasm.format_version() !== 1 ||
-      typeof wasm.v2_scan_image !== "function") {
+      typeof wasm.v2_scan_image !== "function" ||
+      typeof wasm.v2_encode_links !== "function") {
       throw new Error("WaveCode V2 SDK mismatch. Rebuild the pinned Rust SDK.");
     }
     return wasm;
@@ -88,7 +89,7 @@ function renderV2(
   }
   const symbols = new Uint8Array(frame.symbols);
   const args = [
-    frame.metadata, symbols, 18, geometry.payloadHeight, 18,
+    frame.metadata, symbols, 16, geometry.payloadHeight, 12,
     geometry.payloadCenterGap, geometry.logoPayloadGap, geometry.logoHeight,
   ] as const;
   const svg = wasm.v2_render_svg_with_geometry(...args);
@@ -118,7 +119,9 @@ context.onmessage = async (event: MessageEvent<EngineRequest>) => {
     } else if (request.action === "generate-dual") {
       value = renderV2(
         wasm,
-        wasm.v2_encode_dual(request.spotifyId, request.youtubeMusicId, request.moment),
+        wasm.v2_encode_links(
+          request.firstUrl, request.secondUrl, request.firstMoment, request.secondMoment,
+        ),
         request.geometry ?? defaultGeometry,
       );
     } else if (request.version === 2) {

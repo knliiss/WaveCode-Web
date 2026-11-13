@@ -75,8 +75,8 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
       {dual ? (
         <div className="dual-results" aria-label="Choose a destination">
           <p className="dual-description">Two independent links. Open either platform.</p>
-          {urls.map((link) => (
-            <div className="dual-result" key={link}>
+          {urls.map((link, index) => (
+            <div className="dual-result" key={index}>
               <div className="result-track">
                 <PlatformBadge url={link} />
                 <div className="result-track-text">

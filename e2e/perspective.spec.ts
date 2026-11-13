@@ -1,21 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { createLegacyV1Png } from "./legacy-v1";
 
 const TRACK = "https://open.spotify.com/track/0123456789abcdefghijkl";
 
 test("existing V1 marks survive combined camera roll and perspective in WASM", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary navigation" })
-    .getByRole("button", { name: "Create" }).click();
-  await page.getByLabel("Music or video link").fill(TRACK);
-  await page.getByRole("button", { name: "Create WaveCode" }).click();
-
-  const [download] = await Promise.all([
-    page.waitForEvent("download"),
-    page.getByRole("button", { name: "Save PNG" }).click(),
-  ]);
-  const path = await download.path();
-  if (!path) throw new Error("WaveCode image export failed.");
+  const legacy = await createLegacyV1Png(page, TRACK);
 
   const photo = await page.evaluate(async (bytes: number[]) => {
     const source = new Image();
@@ -82,7 +72,7 @@ test("existing V1 marks survive combined camera roll and perspective in WASM", a
     } finally {
       URL.revokeObjectURL(url);
     }
-  }, Array.from(readFileSync(path)));
+  }, Array.from(legacy));
 
   await page.getByRole("navigation", { name: "Primary navigation" })
     .getByRole("button", { name: "Scan" }).click();

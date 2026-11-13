@@ -62,28 +62,6 @@ export function isSupportedMusicUrl(value: string): boolean {
   }
 }
 
-export function parseDualTrackIds(spotifyLink: string, youtubeMusicLink: string): {
-  spotifyId: string;
-  youtubeMusicId: string;
-} | null {
-  if (!isSupportedMusicUrl(spotifyLink) || !isSupportedMusicUrl(youtubeMusicLink)) {
-    return null;
-  }
-  const spotify = new URL(spotifyLink.trim());
-  const youtube = new URL(youtubeMusicLink.trim());
-  if (spotify.hostname !== "open.spotify.com" ||
-      youtube.hostname !== "music.youtube.com" ||
-      youtube.pathname !== "/watch") {
-    return null;
-  }
-  const match = /^\/track\/([A-Za-z0-9]{22})\/?$/.exec(spotify.pathname);
-  const youtubeId = youtube.searchParams.get("v");
-  if (!match || !youtubeId || !/^[A-Za-z0-9_-]{11}$/.test(youtubeId)) {
-    return null;
-  }
-  return { spotifyId: match[1]!, youtubeMusicId: youtubeId };
-}
-
 export function supportsNativeMoment(value: string): boolean {
   try {
     return !noNativeMomentHosts.has(new URL(value.trim()).hostname.toLowerCase());

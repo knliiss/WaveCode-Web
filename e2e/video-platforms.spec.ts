@@ -47,7 +47,7 @@ const cases = [
 ] as const;
 
 for (const item of cases) {
-  test(`V1 video round trip: ${item.name}`, async ({ page }) => {
+  test(`V2 video round trip: ${item.name}`, async ({ page }) => {
     await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Primary navigation" });
     await nav.getByRole("button", { name: "Create" }).click();
@@ -91,7 +91,7 @@ test("V2 short TikTok share URL is lossless without resolving redirects", async 
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await nav.getByRole("button", { name: "Create" }).click();
-  await page.getByRole("button", { name: "V2 · single" }).click();
+  await expect(page.getByRole("button", { name: "Single link" })).toBeVisible();
   await page.getByRole("textbox", { name: "Music or video link" }).fill(link);
   await page.getByRole("button", { name: "Create WaveCode" }).click();
   await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();

@@ -1,4 +1,5 @@
 export interface WaveCodeCapsule {
+  kind: string;
   x: number;
   y: number;
   width: number;
@@ -78,7 +79,7 @@ export function previewGeometryFromSvg(source: string): WaveCodePreviewGeometry 
       barWidth <= 0 || barHeight <= 0 || radius < 0 || radius > barWidth / 2 + 0.01 ||
       x + barWidth > width + 0.01 || y + barHeight > height + 0.01) return null;
 
-    capsules.push({ x, y, width: barWidth, height: barHeight, radius });
+    capsules.push({ kind: capsuleClass, x, y, width: barWidth, height: barHeight, radius });
     if (capsuleClass.startsWith("wavecode-guard-")) guardCount += 1;
     if (capsuleClass === "w-capsule") wCount += 1;
     if (capsuleClass === "data-upper") payloadUpperCount += 1;
@@ -88,7 +89,7 @@ export function previewGeometryFromSvg(source: string): WaveCodePreviewGeometry 
   const legacyV1 = capsules.length === 72 && guardCount === 4 && wCount === 0;
   const capsuleV2 = wCount === 22 && guardCount === 0 &&
     payloadUpperCount === payloadLowerCount && payloadUpperCount >= 9 &&
-    payloadUpperCount <= 34 && capsules.length === 22 + payloadUpperCount * 2;
+    payloadUpperCount <= 57 && capsules.length === 22 + payloadUpperCount * 2;
   if (backgroundCount > 1 || (!legacyV1 && !capsuleV2)) return null;
   return { width, height, viewBox, capsules };
 }
