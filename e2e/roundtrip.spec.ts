@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { createLegacyV1Png } from "./legacy-v1";
 
 const TRACK = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 const EXPECTED = TRACK + "?t=59";
@@ -56,7 +57,7 @@ test("generate, download and decode the same WaveCode entirely in the browser", 
   const link = page.getByRole("link", { name: /Open track/ });
   await expect(link).toHaveAttribute("href", EXPECTED);
   await expect(page.getByText("Spotify", { exact: true }).first()).toBeVisible();
-  await expect(page.locator(".result-version")).toHaveText("V1");
+  await expect(page.locator(".result-version")).toHaveText("V2");
   await expectPlatformIcon(page, "spotify");
 
   if (testInfo.project.name === "mobile-chromium") {
@@ -84,11 +85,12 @@ test("V2 Dual round-trips two independent links with a smaller W", async ({ page
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await nav.getByRole("button", { name: /Create/ }).click();
-  await page.getByRole("button", { name: "V2 · dual" }).click();
-  await page.getByRole("textbox", { name: "Spotify track link" }).fill(TRACK);
-  await page.getByRole("textbox", { name: "YouTube Music link" })
+  await page.getByRole("button", { name: "Dual link" }).click();
+  await page.getByRole("textbox", { name: "First media link" }).fill(TRACK);
+  await page.getByRole("textbox", { name: "Second media link" })
     .fill("https://music.youtube.com/watch?v=JGwWNGJdvx8");
-  await page.getByRole("textbox", { name: "Start at a moment" }).fill("00:59");
+  await page.getByRole("textbox", { name: "First start moment" }).fill("00:59");
+  await page.getByRole("textbox", { name: "Second start moment" }).fill("00:59");
   await expect(page.locator('.creator-form [data-platform="spotify"]')).toBeVisible();
   await expect(page.locator('.creator-form [data-platform="youtube-music"]')).toBeVisible();
 
@@ -96,7 +98,7 @@ test("V2 Dual round-trips two independent links with a smaller W", async ({ page
   const logoSize = page.getByRole("slider", { name: "W size" });
   await logoSize.focus();
   await logoSize.press("Home");
-  for (let i = 0; i < 10; i++) await logoSize.press("ArrowRight");
+  for (let i = 0; i < 20; i++) await logoSize.press("ArrowRight");
   await expect(logoSize).toHaveValue("110");
 
   await page.getByRole("button", { name: "Create WaveCode" }).click();
@@ -129,7 +131,7 @@ test("V2 Single is scanned in the same UI as V1 and keeps its provider mark", as
   await page.goto("/");
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
   await nav.getByRole("button", { name: /Create/ }).click();
-  await page.getByRole("button", { name: "V2 · single" }).click();
+  await expect(page.getByRole("button", { name: /V1 · classic/ })).toHaveCount(0);
   await page.getByRole("textbox", { name: "Music or video link" }).fill(original);
   await expect(page.locator('.creator-form [data-platform="youtube-music"]')).toBeVisible();
   await page.getByRole("button", { name: "Create WaveCode" }).click();
@@ -153,4 +155,88 @@ test("V2 Single is scanned in the same UI as V1 and keeps its provider mark", as
   await expectPlatformIcon(page, "youtube-music");
   await expect(page.getByRole("link", { name: "Open track" }))
     .toHaveAttribute("href", original);
+});
+
+test("V1 remains scan-compatible even though V1 creation is hidden", async ({ page }) => {
+  await page.goto("/");
+  const legacy = await createLegacyV1Png(page, TRACK, 59);
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "legacy-wavecode.png",
+    mimeType: "image/png",
+    buffer: legacy,
+  });
+  await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.locator(".result-version")).toHaveText("V1");
+  await expectPlatformIcon(page, "spotify");
+  await expect(page.getByRole("link", { name: "Open track" }))
+    .toHaveAttribute("href", EXPECTED);
+});
+
+test("V2 Dual scans arbitrary platforms with independent moments", async ({ page }) => {
+  const first = "https://open.spotify.com/track/zzzzzzzzzzzzzzzzzzzzzz";
+  const second = "https://open.spotify.com/track/0000000000000000000000";
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Dual link" }).click();
+  await page.getByRole("textbox", { name: "First media link" }).fill(first);
+  await page.getByRole("textbox", { name: "Second media link" }).fill(second);
+  await page.getByRole("textbox", { name: "First start moment" }).fill("01:15");
+  await page.getByRole("textbox", { name: "Second start moment" }).fill("00:40");
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  const preview = page.getByRole("img", { name: "Generated WaveCode preview" });
+  await expect(preview).toBeVisible();
+  const rails = preview.locator(".data-upper");
+  await expect.poll(() => rails.count()).toBeGreaterThan(34);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Save PNG" }).click(),
+  ]);
+  const file = await download.path();
+  if (!file) throw new Error("No generic Dual PNG was downloaded.");
+  await nav.getByRole("button", { name: "Scan" }).click();
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "generic-dual.png",
+    mimeType: "image/png",
+    buffer: readFileSync(file),
+  });
+  await expect(page.getByText("DUAL CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.locator(".result-version")).toHaveText("V2");
+  const links = page.getByRole("link", { name: "Open Spotify" });
+  await expect(links).toHaveCount(2);
+  await expect(links.nth(0)).toHaveAttribute("href", first + "?t=75");
+  await expect(links.nth(1)).toHaveAttribute("href", second + "?t=40");
+});
+
+test("V2 Dual supports video-to-video links with no moments", async ({ page }) => {
+  const tiktok = "https://vt.tiktok.com/ZSp94BeDn/";
+  const instagram = "https://www.instagram.com/reel/DIPPWkUh7Rj/";
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Dual link" }).click();
+  await page.getByRole("textbox", { name: "First media link" }).fill(tiktok);
+  await page.getByRole("textbox", { name: "Second media link" }).fill(instagram);
+  await expect(page.getByRole("textbox", { name: "First start moment" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Second start moment" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Save PNG" }).click(),
+  ]);
+  const path = await download.path();
+  if (!path) throw new Error("No video Dual PNG was downloaded.");
+  await nav.getByRole("button", { name: "Scan" }).click();
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "dual-videos.png",
+    mimeType: "image/png",
+    buffer: readFileSync(path),
+  });
+  await expect(page.getByText("DUAL CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.getByRole("link", { name: "Open TikTok" })).toHaveAttribute("href", tiktok);
+  await expect(page.getByRole("link", { name: "Open Instagram Reels" }))
+    .toHaveAttribute("href", instagram);
 });
