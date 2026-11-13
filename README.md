@@ -19,21 +19,21 @@ All processing is performed **on your device**, using the upstream Rust codec co
 | --- | --- |
 | Live scanner | Finds supported WaveCode marks using the device camera; prefers the rear lens |
 | Photo import | Scans local PNG/JPEG and device photos with progressively detailed crops |
-| V1 creation | Generates the original fixed 36-column WaveCode |
+| V1 compatibility | Reads existing original 36-column V1 marks (V1 creation is no longer shown) |
 | V2 Single | Generates a W-anchored variable-length optical code for one supported media link |
-| V2 Dual | Encodes **two independent** Spotify and YouTube Music destinations, with an optional shared moment |
+| V2 Dual | Encodes **any two supported destinations**, in either order, with optional independent moments |
 | Proportions | Independently controls W size, payload height, middle gap and W-to-payload gap for V2 |
 | Export | Copies or saves the generated SVG or PNG |
 | Scan results | Opens original platform links with small, round provider badges; Dual exposes both destinations separately |
 
-The scanner accepts V1 and V2 in the same interface. **V1 remains the default creation mode** for backward-compatible output; V2 Single and Dual are available from the Create format selector. Scanning results and generated destinations display locally bundled provider badges; no third-party icon network requests are made.
+The scanner accepts V1 and V2 in the same interface. **Creation is V2-only**: choose Single or Dual from the Create format selector. Existing V1 codes remain readable. Generic V2 Dual supports any two independently supported links, including two links from the same service; the compact Spotify + YouTube Music mode is selected automatically when eligible. Scanning results and generated destinations display locally bundled provider badges; no third-party icon network requests are made.
 
 ## Create a V2 code
 
-1. Open **Create**, then choose **V2 · single** or **V2 · dual**.
-2. Paste one supported media link or, for Dual, a Spotify track URL and a YouTube Music watch URL.
-3. Optionally set a native start moment (`mm:ss` or seconds) where supported.
-4. Open **Adjust proportions** to change W reference height, payload reference height, middle whitespace or W-to-payload spacing.
+1. Open **Create**, then choose **Single link** or **Dual link**. There is no V1 creation mode.
+2. Paste one or two independently supported URLs; any supported combination is valid in Dual.
+3. Share URLs are canonicalized to the original media identity. Tracking parameters are removed; a native timestamp from `t`, `start` or `time_continue` (seconds, `mm:ss`, `1m35s`) appears in the relevant **Start moment** field. Dual moments are independent and editable.
+4. Open **Adjust proportions** to customize W height, payload height and the two visual gaps. The default V2 mark now uses a smaller W, shorter data rails and tighter pitch.
 5. Select **Create WaveCode** to preview and save/copy the code.
 
 ### Independently sized W and data
@@ -42,7 +42,7 @@ V2's W is a real **22-capsule optical anchor** encoding the BCH-protected versio
 
 Payload heights come from the payload's own 16-level dual-rail alphabet. The scanner derives their scale independently. Neither the distance between the W and payload nor the center-gap width carries data. This freedom still requires visible, separated capsules; excessively small printed bars or merged shapes can defeat optical recognition.
 
-Dual codes contain both original IDs losslessly. WaveCode never guesses that two platform URLs represent the same song, and it does not require a proprietary track-pair database.
+Dual codes contain both original identities losslessly. WaveCode never guesses that two platform URLs represent the same song, and it does not require a proprietary track-pair database. Mixed or same-platform pairs may need more bars than the specialized Spotify + YouTube Music format; reducing their physical dimensions does not remove that information requirement.
 
 ## Supported links
 
@@ -57,7 +57,7 @@ src/
   app/                   Shell, navigation and brand
   domain/                Versioned code types and URL validation
   features/
-    create/              V1/V2 creation, proportions, export
+    create/              V2 Single/Dual creation, URL cleanup, proportions, export
     scanner/             Camera state, photo scanning, scan results
   infrastructure/
     wavecode/            Typed Worker client + Rust WASM adapter
@@ -104,7 +104,7 @@ npx playwright install chromium webkit
 npm run test:e2e
 ```
 
-CI runs TypeScript, unit tests, a production build and mobile browser end-to-end round trips for V1/V2. The V2 Dual test generates a PNG with a W smaller than its payload, scans it and verifies both returned platform links.
+CI runs TypeScript, unit tests, a production build and mobile browser end-to-end round trips for V2 Single, optimized Dual and arbitrary-platform Dual. A separate V1 Worker fixture verifies that existing codes **still scan** without reintroducing a V1 creation option. The optical checks also exercise the reduced default W and rail dimensions.
 
 ## Deployment
 

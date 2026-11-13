@@ -240,3 +240,49 @@ test("V2 Dual supports video-to-video links with no moments", async ({ page }) =
   await expect(page.getByRole("link", { name: "Open Instagram Reels" }))
     .toHaveAttribute("href", instagram);
 });
+
+test("pasting a timed shared URL cleans the link and fills the moment field", async ({ page }) => {
+  const spotify = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Create" }).click();
+  await page.getByRole("textbox", { name: "Music or video link" })
+    .fill(spotify + "?si=tracking&t=187&utm_source=share");
+  await page.getByRole("button", { name: "Create WaveCode" }).focus();
+  await expect(page.getByRole("textbox", { name: "Music or video link" }))
+    .toHaveValue(spotify);
+  await expect(page.getByRole("textbox", { name: "Start at a moment" }))
+    .toHaveValue("03:07");
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Spotify" }))
+    .toHaveAttribute("href", spotify + "?t=187");
+});
+
+test("Dual import moves each native timestamp into its own editor field", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Primary navigation" })
+    .getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Dual link" }).click();
+  await page.getByRole("textbox", { name: "First media link" })
+    .fill("https://music.youtube.com/watch?v=JGwWNGJdvx8&list=abc&t=1m35s");
+  await page.getByRole("textbox", { name: "Second media link" })
+    .fill("https://www.youtube.com/shorts/JGwWNGJdvx8?start=17&feature=share");
+  await page.getByRole("button", { name: "Create WaveCode" }).focus();
+
+  await expect(page.getByRole("textbox", { name: "First media link" }))
+    .toHaveValue("https://music.youtube.com/watch?v=JGwWNGJdvx8");
+  await expect(page.getByRole("textbox", { name: "Second media link" }))
+    .toHaveValue("https://www.youtube.com/shorts/JGwWNGJdvx8");
+  await expect(page.getByRole("textbox", { name: "First start moment" }))
+    .toHaveValue("01:35");
+  await expect(page.getByRole("textbox", { name: "Second start moment" }))
+    .toHaveValue("00:17");
+
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open YouTube Music" }))
+    .toHaveAttribute("href", "https://music.youtube.com/watch?v=JGwWNGJdvx8&t=95");
+  await expect(page.getByRole("link", { name: "Open YouTube" }))
+    .toHaveAttribute("href", "https://www.youtube.com/watch?v=JGwWNGJdvx8&t=17");
+});
