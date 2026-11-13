@@ -72,7 +72,7 @@ export function App() {
             <button type="button" className="about-close" aria-label="Close about panel" onClick={() => setAboutOpen(false)}><X size={20} /></button>
             <Brand small />
             <h2 id="about-title">Media, in a mark.</h2>
-            <p>WaveCode V1 uses 36 columns. The experimental V2 format adds a W-shaped locator, variable-length payload, independent visual proportions and a two-link Dual mode. Moments remain native platform links.</p>
+            <p>WaveCode supports the original 36-column V1 format and V2 with a W-shaped locator, variable-length payload, independent visual proportions and two-link Dual codes. Moments remain native platform links.</p>
             <p>Scanning and generation use the original open-source Rust decoder compiled to WebAssembly. Your images stay on your device.</p>
             <a href="https://github.com/knliiss/WaveCode" target="_blank" rel="noopener noreferrer" className="about-link">Explore the format</a>
           </section>
