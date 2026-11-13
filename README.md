@@ -42,7 +42,7 @@ V2's W is a real **22-capsule optical anchor** encoding the BCH-protected versio
 
 Payload heights come from the payload's own 16-level dual-rail alphabet. The scanner derives their scale independently. Neither the distance between the W and payload nor the center-gap width carries data. This freedom still requires visible, separated capsules; excessively small printed bars or merged shapes can defeat optical recognition.
 
-Dual codes contain both original identities losslessly. WaveCode never guesses that two platform URLs represent the same song, and it does not require a proprietary track-pair database. Mixed or same-platform pairs may need more bars than the specialized Spotify + YouTube Music format; reducing their physical dimensions does not remove that information requirement.
+Dual codes contain both original identities losslessly. WaveCode never guesses that two platform URLs represent the same song, and it does not require a proprietary track-pair database. Mixed or same-platform pairs may need more bars than the specialized Spotify + YouTube Music format; reducing their physical dimensions does not remove that information requirement. **V2 automatically selects compact numeric32/YouTube64 identity profiles when they save optical columns**: two small Deezer/TIDAL identifiers require 17 columns instead of 25, with unchanged CRC-16 and Reed–Solomon protection. Existing marks remain readable.
 
 ## Supported links
 

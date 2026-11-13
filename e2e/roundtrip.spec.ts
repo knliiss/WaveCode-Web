@@ -319,3 +319,41 @@ test("V2 general Dual Apple Music pair decodes at a legacy-overlapping column le
   await expect(links.nth(0)).toHaveAttribute("href", first);
   await expect(links.nth(1)).toHaveAttribute("href", second);
 });
+
+test("adaptive V2 Dual reduces two numeric IDs to seventeen real optical columns", async ({ page }) => {
+  const first = "https://www.deezer.com/track/12345";
+  const second = "https://tidal.com/browse/track/67890";
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Dual link" }).click();
+  await page.getByRole("textbox", { name: "First media link" }).fill(first);
+  await page.getByRole("textbox", { name: "Second media link" }).fill(second);
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+
+  const preview = page.getByRole("img", { name: "Generated WaveCode preview" });
+  await expect(preview).toBeVisible();
+  await expect(preview.locator(".w-capsule")).toHaveCount(22);
+  await expect(preview.locator(".data-upper")).toHaveCount(17);
+  await expect(preview.locator(".data-lower")).toHaveCount(17);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Save PNG" }).click(),
+  ]);
+  const path = await download.path();
+  if (!path) throw new Error("Compact numeric V2 Dual PNG was not downloaded.");
+
+  await nav.getByRole("button", { name: "Scan" }).click();
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "numeric-dual-v2.png",
+    mimeType: "image/png",
+    buffer: readFileSync(path),
+  });
+  await expect(page.getByText("DUAL CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.locator(".result-version")).toHaveText("V2");
+  await expect(page.getByRole("link", { name: "Open Deezer" }))
+    .toHaveAttribute("href", first);
+  await expect(page.getByRole("link", { name: "Open TIDAL" }))
+    .toHaveAttribute("href", second);
+});
