@@ -122,7 +122,10 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       try {
         const frame = await captureFrame(video, mode);
         if (cycleRef.current !== cycle) return;
-        const detected = codeCandidates(await engine.scan(frame));
+        // V2 is the primary camera target. The older V1 scan runs periodically
+        // rather than delaying the analysis of every live frame.
+        const scanMode = iteration % 5 === 4 ? "all" : "v2";
+        const detected = codeCandidates(await engine.scan(frame, scanMode));
         if (cycleRef.current !== cycle) return;
         if (detected.length) {
           finish(detected, "camera");
