@@ -1,22 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { createLegacyV1Png } from "./legacy-v1";
 
 const TRACK = "https://open.spotify.com/track/0123456789abcdefghijkl";
 
 for (const lightInk of [false, true]) {
-  test(`WASM reads ${lightInk ? "light" : "dark"} rails across a strong illumination gradient`, async ({ page }) => {
+  test(`V1 WASM reads ${lightInk ? "light" : "dark"} rails across a strong illumination gradient`, async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("navigation", { name: "Primary navigation" })
-      .getByRole("button", { name: "Create" }).click();
-    await page.getByLabel("Music or video link").fill(TRACK);
-    await page.getByRole("button", { name: "Create WaveCode" }).click();
-
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByRole("button", { name: "Save PNG" }).click(),
-    ]);
-    const sourcePath = await download.path();
-    if (!sourcePath) throw new Error("Could not download WaveCode PNG");
+    const legacy = await createLegacyV1Png(page, TRACK);
 
     const photo = await page.evaluate(async ({ bytes, inkIsLight }: { bytes: number[]; inkIsLight: boolean }) => {
       const source = new Image();
@@ -62,7 +52,7 @@ for (const lightInk of [false, true]) {
       } finally {
         URL.revokeObjectURL(sourceUrl);
       }
-    }, { bytes: Array.from(readFileSync(sourcePath)), inkIsLight: lightInk });
+    }, { bytes: Array.from(legacy), inkIsLight: lightInk });
 
     await page.getByRole("navigation", { name: "Primary navigation" })
       .getByRole("button", { name: "Scan" }).click();

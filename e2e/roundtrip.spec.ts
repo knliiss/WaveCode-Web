@@ -283,6 +283,39 @@ test("Dual import moves each native timestamp into its own editor field", async 
   await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open YouTube Music" }))
     .toHaveAttribute("href", "https://music.youtube.com/watch?v=JGwWNGJdvx8&t=95");
-  await expect(page.getByRole("link", { name: "Open YouTube" }))
+  await expect(page.getByRole("link", { name: "Open YouTube", exact: true }))
     .toHaveAttribute("href", "https://www.youtube.com/watch?v=JGwWNGJdvx8&t=17");
+});
+
+test("V2 general Dual Apple Music pair decodes at a legacy-overlapping column length", async ({ page }) => {
+  const first = "https://music.apple.com/ua/song/12345";
+  const second = "https://music.apple.com/us/song/67890";
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Dual link" }).click();
+  await page.getByRole("textbox", { name: "First media link" }).fill(first);
+  await page.getByRole("textbox", { name: "Second media link" }).fill(second);
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  const preview = page.getByRole("img", { name: "Generated WaveCode preview" });
+  await expect(preview).toBeVisible();
+  await expect(preview.locator(".data-upper")).toHaveCount(28);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Save PNG" }).click(),
+  ]);
+  const file = await download.path();
+  if (!file) throw new Error("Apple Music generic Dual PNG is missing.");
+  await nav.getByRole("button", { name: "Scan" }).click();
+  await page.getByLabel("Choose a WaveCode photo").setInputFiles({
+    name: "apple-dual-overlap.png",
+    mimeType: "image/png",
+    buffer: readFileSync(file),
+  });
+  await expect(page.getByText("DUAL CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  const links = page.getByRole("link", { name: "Open Apple Music" });
+  await expect(links).toHaveCount(2);
+  await expect(links.nth(0)).toHaveAttribute("href", first);
+  await expect(links.nth(1)).toHaveAttribute("href", second);
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { createLegacyV1Png } from "./legacy-v1";
 
 const TRACK = "https://open.spotify.com/track/0123456789abcdefghijkl";
 
@@ -7,20 +7,9 @@ for (const variant of [
   { name: "a rotated, light-on-dark physical-style tag with decoration still scans", fragmented: false },
   { name: "a rotated, fragmented physical-style tag is normalized and decoded", fragmented: true },
 ]) {
-  test(variant.name, async ({ page }) => {
+  test(`V1 legacy: ${variant.name}`, async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("navigation", { name: "Primary navigation" })
-      .getByRole("button", { name: "Create" }).click();
-    await page.getByLabel("Music or video link").fill(TRACK);
-    await page.getByRole("button", { name: "Create WaveCode" }).click();
-    await expect(page.getByRole("button", { name: "Copy WaveCode image" })).toBeVisible();
-  
-    const [download] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByRole("button", { name: "Save PNG" }).click(),
-    ]);
-    const path = await download.path();
-    if (!path) throw new Error("No exported WaveCode PNG available.");
+    const legacy = await createLegacyV1Png(page, TRACK);
   
     const photo = await page.evaluate(async ({ bytes, fragmented }: { bytes: number[]; fragmented: boolean }) => {
       const source = new Image();
@@ -86,7 +75,7 @@ for (const variant of [
       } finally {
         URL.revokeObjectURL(url);
       }
-    }, { bytes: Array.from(readFileSync(path)), fragmented: variant.fragmented });
+    }, { bytes: Array.from(legacy), fragmented: variant.fragmented });
   
     await page.getByRole("navigation", { name: "Primary navigation" })
       .getByRole("button", { name: "Scan" }).click();
