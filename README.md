@@ -106,6 +106,8 @@ npm run test:e2e
 
 CI runs TypeScript, unit tests, a production build and mobile browser end-to-end round trips for V2 Single, optimized Dual and arbitrary-platform Dual. A separate V1 Worker fixture verifies that existing codes **still scan** without reintroducing a V1 creation option. The optical checks also exercise the reduced default W and rail dimensions.
 
+The V2 optical scanner now retries bounded, exposure-adaptive contrast thresholds after its fast black/white pass. Mobile E2E regressions additionally scan downscaled, faded and underexposed JPEG captures rather than testing pristine exported PNGs alone. Every decoded link remains checksum- and error-correction-validated.
+
 ## Deployment
 
 The site is a **static Vite build**. Deploy `dist/` to Cloudflare Pages or another HTTPS static host. In clean build environments, compile the pinned Rust SDK **before** running the web build:
