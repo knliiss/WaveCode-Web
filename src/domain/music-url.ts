@@ -1,3 +1,5 @@
+import { platformFromUrl } from "./platform";
+
 const supportedHosts = new Set([
   "music.youtube.com",
   "youtube.com",
@@ -144,25 +146,7 @@ export function prettyMoment(total: number): string {
 }
 
 export function platformLabel(value: string): string {
-  try {
-    const url = new URL(value);
-    const host = url.hostname.toLowerCase();
-    if (host === "music.youtube.com") return "YouTube Music";
-    if (host === "youtu.be" || host.endsWith("youtube.com")) {
-      return url.pathname.startsWith("/shorts/") ? "YouTube Shorts" : "YouTube";
-    }
-    if (host === "tiktok.com" || host === "www.tiktok.com" || host === "vt.tiktok.com") return "TikTok";
-    if (host === "instagram.com" || host === "www.instagram.com") return "Instagram Reels";
-    if (host.includes("spotify")) return "Spotify";
-    if (host.includes("apple")) return "Apple Music";
-    if (host.includes("deezer")) return "Deezer";
-    if (host.includes("tidal")) return "TIDAL";
-    if (host.includes("qobuz")) return "Qobuz";
-    if (host.includes("amazon")) return "Amazon Music";
-  } catch {
-    // Invalid links are handled by the codec and are never opened.
-  }
-  return "Media link";
+  return platformFromUrl(value)?.label ?? "Media link";
 }
 
 export function musicIdentity(value: string): string {

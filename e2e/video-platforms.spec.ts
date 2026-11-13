@@ -111,4 +111,6 @@ test("V2 short TikTok share URL is lossless without resolving redirects", async 
   });
   await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
   await expect(page.getByRole("link", { name: "Open video" })).toHaveAttribute("href", link);
+  await expect(page.locator(".result-version")).toHaveText("V2");
+  await expect(page.locator('.result-track [data-platform="tiktok"]')).toHaveCount(1);
 });

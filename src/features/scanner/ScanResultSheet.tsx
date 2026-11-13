@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { LocatedWaveCode } from "../../domain/wavecode";
+import { PlatformBadge } from "../../components/PlatformBadge";
 import { isSupportedMusicUrl, isVideoUrl, musicIdentity, platformLabel } from "../../domain/music-url";
 
 interface Props {
@@ -12,6 +13,10 @@ interface Props {
 export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
   const [selection, setSelection] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelection(0);
+  }, [codes]);
 
   useEffect(() => {
     if (!copied) return;
@@ -40,7 +45,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
     <div className="result-sheet" role="dialog" aria-modal="false" aria-labelledby="result-title">
       <div className="sheet-grabber" aria-hidden="true" />
       <div className="result-topline">
-        <span className="result-ok">{dual ? "DUAL CODE FOUND" : "CODE FOUND"}</span>
+        <span className="result-ok">{dual ? "DUAL CODE FOUND" : "CODE FOUND"}<span className="result-version">{code.format?.toUpperCase() ?? "V1"}</span></span>
         <button className="sheet-dismiss" type="button" onClick={onDismiss} aria-label="Close result"><X size={19} /></button>
       </div>
       <h2 id="result-title">There's your<br /><em>{dual ? "two links." : video ? "video." : "music."}</em></h2>
@@ -54,18 +59,26 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
               className={selection === index ? "active" : ""}
               onClick={() => { setSelection(index); setCopied(null); }}
             >
-              {index + 1}. {item.urls?.length === 2 ? "Dual" : platformLabel(item.url)}
+              <span className="result-choice-index">{index + 1}</span>
+              <span className="result-choice-icons">
+                <PlatformBadge url={item.url} size="small" />
+                {item.urls && item.urls.length > 1 && (
+                  <PlatformBadge url={item.urls[1]!} size="small" />
+                )}
+              </span>
+              {item.urls?.length === 2 ? "Dual" : platformLabel(item.url)}
             </button>
           ))}
         </div>
       )}
 
       {dual ? (
-        <div className="dual-results">
+        <div className="dual-results" aria-label="Choose a destination">
+          <p className="dual-description">Two independent links. Open either platform.</p>
           {urls.map((link) => (
             <div className="dual-result" key={link}>
               <div className="result-track">
-                <span className="track-monogram"><span className="brand-symbol" aria-hidden="true" /></span>
+                <PlatformBadge url={link} />
                 <div className="result-track-text">
                   <strong>{platformLabel(link)}</strong>
                   <span>{musicIdentity(link)}</span>
@@ -90,7 +103,7 @@ export function ScanResultSheet({ codes, onDismiss, onScanAgain }: Props) {
       ) : (
         <>
           <div className="result-track">
-            <span className="track-monogram"><span className="brand-symbol" aria-hidden="true" /></span>
+            <PlatformBadge url={url} />
             <div className="result-track-text">
               <strong>{platformLabel(url)}</strong>
               <span>{musicIdentity(url)}</span>
