@@ -225,6 +225,7 @@ img { display: block; max-width: 100%; }
 .platform-badge--small { --badge-size: 23px; }
 .platform-badge img { display: block; width: 61%; height: 61%; object-fit: contain; }
 .platform-badge[data-platform="spotify"] img { width: 84%; height: 84%; }
+.platform-badge[data-platform="amazon-music"] img { width: 81%; height: 81%; }
 .platform-badge-letter { font-size: 18px; font-weight: 800; color: white; letter-spacing: -.07em; }
 .platform-badge--small .platform-badge-letter { font-size: 13px; }
 .result-track-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }

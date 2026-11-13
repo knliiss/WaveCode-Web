@@ -24,11 +24,7 @@ describe("platform identity and round logos", () => {
     expect(platform?.id).toBe(id);
     expect(platform?.label).toBe(name);
     expect(platformLabel(url)).toBe(name);
-    if (id !== "amazon-music") {
-      expect(platform?.icon).toMatch(/^\/platforms\/[a-z]+\.svg$/);
-    } else {
-      expect(platform?.fallback).toBe("a");
-    }
+    expect(platform?.icon).toMatch(/^\/platforms\/[a-z]+\.svg$/);
   });
 
   it("never associates a badge with untrusted or malformed origins", () => {

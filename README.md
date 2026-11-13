@@ -128,4 +128,4 @@ Code generation and scanning execute locally. The app includes no account system
 
 ## License
 
-WaveCode Web is MIT-licensed. The Rust SDK and the original WaveCode mark are maintained in [WaveCode](https://github.com/knliiss/WaveCode) under its own MIT license. Locally bundled provider glyphs are from [Simple Icons](https://simpleicons.org/) (CC0) and [SVG Repo](https://www.svgrepo.com/svg/504778/qobuz) (CC0); service names and trademarks belong to their respective owners. Amazon Music uses a compact letter badge.
+WaveCode Web is MIT-licensed. The Rust SDK and the original WaveCode mark are maintained in [WaveCode](https://github.com/knliiss/WaveCode) under its own MIT license. Locally bundled provider glyphs are from [Simple Icons](https://simpleicons.org/) (CC0), [SVG Repo](https://www.svgrepo.com/svg/504778/qobuz) (CC0) and [custom-brand-icons](https://github.com/elax46/custom-brand-icons) (MIT, Amazon Music). Service names and trademarks belong to their respective owners.
