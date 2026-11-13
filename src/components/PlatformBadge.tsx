@@ -16,7 +16,7 @@ export function PlatformBadge({ url, size = "medium" }: Props) {
       style={{ backgroundColor: platform.color }}
     >
       {platform.icon ? (
-        <img src={platform.icon} width="24" height="24" alt="" draggable={false} />
+        <img src={import.meta.env.BASE_URL + platform.icon.slice(1)} width="24" height="24" alt="" draggable={false} />
       ) : (
         <span className="platform-badge-letter">{platform.fallback}</span>
       )}
