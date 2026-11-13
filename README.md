@@ -106,7 +106,7 @@ npm run test:e2e
 
 CI runs TypeScript, unit tests, a production build and mobile browser end-to-end round trips for V2 Single, optimized Dual and arbitrary-platform Dual. A separate V1 Worker fixture verifies that existing codes **still scan** without reintroducing a V1 creation option. The optical checks also exercise the reduced default W and rail dimensions.
 
-The V2 optical scanner now retries bounded, exposure-adaptive contrast thresholds after its fast black/white pass. Mobile E2E regressions additionally scan downscaled, faded and underexposed JPEG captures rather than testing pristine exported PNGs alone. Every decoded link remains checksum- and error-correction-validated.
+The scanner also handles framed photos with labels and graphics surrounding the W by searching bounded horizontal image bands rather than requiring all 22 W capsules to be adjacent in an uncluttered full-frame component list. Live camera prioritizes the V2 decoder on most frames; V1 is checked periodically and remains available on photo uploads. A mocked live-camera E2E verifies scanning the real on-screen frame path.\n\nThe V2 optical scanner now retries bounded, exposure-adaptive contrast thresholds after its fast black/white pass. Mobile E2E regressions additionally scan downscaled, faded and underexposed JPEG captures rather than testing pristine exported PNGs alone. Every decoded link remains checksum- and error-correction-validated.
 
 ## Deployment
 
