@@ -17,7 +17,7 @@ test("transparent native SVG contains exactly the 72 official WaveCode rails", a
 
   await expect(preview.locator("rect")).toHaveCount(72);
   await expect(preview.locator("image, foreignObject, canvas")).toHaveCount(0);
-  await expect(page.locator(".output-panel img")).toHaveCount(0);
+  await expect(preview.locator("img")).toHaveCount(0);
   await expect(page.locator(".output-stage")).toHaveCount(0);
 
   const geometry = await preview.evaluate((svg) => ({
