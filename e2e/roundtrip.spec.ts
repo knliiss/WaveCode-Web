@@ -1,8 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const TRACK = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 const EXPECTED = TRACK + "?t=59";
+
+async function expectPlatformIcon(page: Page, platform: string) {
+  const icon = page.locator('.result-sheet .platform-badge[data-platform="' + platform + '"]').first();
+  await expect(icon).toBeVisible();
+  const image = icon.locator("img");
+  await expect(image).toHaveAttribute("src", /\/platforms\/[a-z]+\.svg$/);
+  await expect.poll(async () =>
+    image.evaluate((element) => {
+      const asset = element as HTMLImageElement;
+      return asset.complete && asset.naturalWidth > 0;
+    }),
+  ).toBe(true);
+}
 
 test("generate, download and decode the same WaveCode entirely in the browser", async ({ page }, testInfo) => {
   const pageErrors: string[] = [];
@@ -43,6 +56,8 @@ test("generate, download and decode the same WaveCode entirely in the browser", 
   const link = page.getByRole("link", { name: /Open track/ });
   await expect(link).toHaveAttribute("href", EXPECTED);
   await expect(page.getByText("Spotify", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".result-version")).toHaveText("V1");
+  await expectPlatformIcon(page, "spotify");
 
   if (testInfo.project.name === "mobile-chromium") {
     await page.screenshot({ path: "test-results/mobile-scan-result.png", fullPage: true });
@@ -74,6 +89,8 @@ test("V2 Dual round-trips two independent links with a smaller W", async ({ page
   await page.getByRole("textbox", { name: "YouTube Music link" })
     .fill("https://music.youtube.com/watch?v=JGwWNGJdvx8");
   await page.getByRole("textbox", { name: "Start at a moment" }).fill("00:59");
+  await expect(page.locator('.creator-form [data-platform="spotify"]')).toBeVisible();
+  await expect(page.locator('.creator-form [data-platform="youtube-music"]')).toBeVisible();
 
   await page.getByText("Adjust proportions").click();
   const logoSize = page.getByRole("slider", { name: "W size" });
@@ -97,8 +114,43 @@ test("V2 Dual round-trips two independent links with a smaller W", async ({ page
     buffer: readFileSync(file),
   });
   await expect(page.getByText("DUAL CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.locator(".result-version")).toHaveText("V2");
+  await expectPlatformIcon(page, "spotify");
+  await expectPlatformIcon(page, "youtube-music");
+  await expect(page.getByText("Two independent links. Open either platform.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Spotify" }))
     .toHaveAttribute("href", TRACK + "?t=59");
   await expect(page.getByRole("link", { name: "Open YouTube Music" }))
     .toHaveAttribute("href", "https://music.youtube.com/watch?v=JGwWNGJdvx8&t=59");
+});
+
+test("V2 Single is scanned in the same UI as V1 and keeps its provider mark", async ({ page }) => {
+  const original = "https://music.youtube.com/watch?v=JGwWNGJdvx8&t=59";
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  await nav.getByRole("button", { name: /Create/ }).click();
+  await page.getByRole("button", { name: "V2 · single" }).click();
+  await page.getByRole("textbox", { name: "Music or video link" }).fill(original);
+  await expect(page.locator('.creator-form [data-platform="youtube-music"]')).toBeVisible();
+  await page.getByRole("button", { name: "Create WaveCode" }).click();
+  await expect(page.getByRole("img", { name: "Generated WaveCode preview" })).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Save PNG" }).click(),
+  ]);
+  const imagePath = await download.path();
+  if (!imagePath) throw new Error("No V2 PNG was exported.");
+
+  await nav.getByRole("button", { name: /Scan/ }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "wavecode-v2-single.png",
+    mimeType: "image/png",
+    buffer: readFileSync(imagePath),
+  });
+  await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 70_000 });
+  await expect(page.locator(".result-version")).toHaveText("V2");
+  await expectPlatformIcon(page, "youtube-music");
+  await expect(page.getByRole("link", { name: "Open track" }))
+    .toHaveAttribute("href", original);
 });

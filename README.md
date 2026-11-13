@@ -24,9 +24,9 @@ All processing is performed **on your device**, using the upstream Rust codec co
 | V2 Dual | Encodes **two independent** Spotify and YouTube Music destinations, with an optional shared moment |
 | Proportions | Independently controls W size, payload height, middle gap and W-to-payload gap for V2 |
 | Export | Copies or saves the generated SVG or PNG |
-| Scan results | Opens original platform links; Dual exposes both destinations separately |
+| Scan results | Opens original platform links with small, round provider badges; Dual exposes both destinations separately |
 
-The scanner accepts V1 and V2 in the same interface. **V1 remains the default creation mode** for backward-compatible output; V2 Single and Dual are available from the Create format selector.
+The scanner accepts V1 and V2 in the same interface. **V1 remains the default creation mode** for backward-compatible output; V2 Single and Dual are available from the Create format selector. Scanning results and generated destinations display locally bundled provider badges; no third-party icon network requests are made.
 
 ## Create a V2 code
 
@@ -128,4 +128,4 @@ Code generation and scanning execute locally. The app includes no account system
 
 ## License
 
-WaveCode Web is MIT-licensed. The Rust SDK and the original WaveCode mark are maintained in [WaveCode](https://github.com/knliiss/WaveCode) under its own MIT license.
+WaveCode Web is MIT-licensed. The Rust SDK and the original WaveCode mark are maintained in [WaveCode](https://github.com/knliiss/WaveCode) under its own MIT license. Locally bundled provider glyphs are from [Simple Icons](https://simpleicons.org/) (CC0) and [SVG Repo](https://www.svgrepo.com/svg/504778/qobuz) (CC0); service names and trademarks belong to their respective owners. Amazon Music uses a compact letter badge.
