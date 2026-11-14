@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LocatedWaveCode, ScanSource, WaveCodeEngine } from "../../domain/wavecode";
 import { isSupportedMusicUrl } from "../../domain/music-url";
-import { captureFile, captureFrame, type CaptureMode } from "../../infrastructure/camera/frames";
+import { captureFile, captureFrame } from "../../infrastructure/camera/frames";
 import { applyCameraAdjustments, planExposureReduction, type ExposureCapabilities, type ExposurePlan, type ExposureSettings } from "../../infrastructure/camera/exposure";
 import { originalPhotoBytes } from "../../infrastructure/camera/original-photo";
+import { cameraScanStep } from "./scan-plan";
 
 export type ScanPhase =
   | "idle" | "starting" | "scanning" | "uploading" | "found" | "no-result" | "error";
@@ -100,6 +101,7 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
 
   const scanLoop = useCallback(async (cycle: number) => {
     let iteration = 0;
+    let nextCandidate = 0;
     while (cycleRef.current === cycle && isMounted.current) {
       if (document.visibilityState === "hidden") {
         await delay(450);
@@ -112,23 +114,13 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       }
 
       const started = performance.now();
-      const modes: readonly CaptureMode[] = [
-        "finder", "detail", "finder", "full",
-        "lower", "finder", "upper", "full",
-        "left", "finder", "right", "detail",
-      ];
-      const scanMode = iteration % 9 === 8 ? "all"
-        : iteration < 2 || iteration % 2 === 0 ? "v2-oblique" : "v2";
-      const candidate = iteration < 2 ? iteration : (Math.floor(iteration / 2) + 1) % 12;
-      const mode = scanMode === "v2-oblique" ? "full" : modes[iteration % modes.length]!;
+      const step = cameraScanStep(iteration, nextCandidate);
+      nextCandidate = step.nextCandidate;
 
       try {
-        const frame = await captureFrame(video, mode);
+        const frame = await captureFrame(video, step.captureMode);
         if (cycleRef.current !== cycle) return;
-        // Favor oblique views immediately: both yaw directions are checked
-        // in the first two frames. Continue alternating fast checks with
-        // bounded perspective retries; V1 remains a periodic fallback.
-        const detected = codeCandidates(await engine.scan(frame, scanMode, candidate));
+        const detected = codeCandidates(await engine.scan(frame, step.scanMode, step.candidate));
         if (cycleRef.current !== cycle) return;
         if (detected.length) {
           finish(detected, "camera");
