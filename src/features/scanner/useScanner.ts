@@ -117,16 +117,17 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
         "lower", "finder", "upper", "full",
         "left", "finder", "right", "detail",
       ];
-      const mode = iteration % 3 === 2 ? "full" : modes[iteration % modes.length]!;
+      const scanMode = iteration % 9 === 8 ? "all"
+        : iteration < 2 || iteration % 2 === 0 ? "v2-oblique" : "v2";
+      const candidate = iteration < 2 ? iteration : (Math.floor(iteration / 2) + 1) % 12;
+      const mode = scanMode === "v2-oblique" ? "full" : modes[iteration % modes.length]!;
 
       try {
         const frame = await captureFrame(video, mode);
         if (cycleRef.current !== cycle) return;
-        // Check V2 quickly on ordinary frames, recover one perspective
-        // hypothesis periodically, and retain legacy V1 scanning.
-        const scanMode = iteration % 9 === 8 ? "all"
-          : iteration % 3 === 2 ? "v2-oblique" : "v2";
-        const candidate = Math.floor(iteration / 3) % 12;
+        // Favor oblique views immediately: both yaw directions are checked
+        // in the first two frames. Continue alternating fast checks with
+        // bounded perspective retries; V1 remains a periodic fallback.
         const detected = codeCandidates(await engine.scan(frame, scanMode, candidate));
         if (cycleRef.current !== cycle) return;
         if (detected.length) {
