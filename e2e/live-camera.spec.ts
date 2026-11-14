@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { createLegacyV1Png } from "./legacy-v1";
 
 const SPOTIFY = "https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b";
 const DEEZER = "https://www.deezer.com/track/12345";
@@ -91,3 +92,15 @@ for (const fixture of [
     }
   });
 }
+
+
+test("live mobile camera still reads smaller legacy V1 marks", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile-chromium", "Canvas camera capture only exercised in Chromium.");
+  await page.goto("/");
+  const mark = await createLegacyV1Png(page, SPOTIFY);
+  await installClutteredCamera(page, mark, 360);
+  await page.getByRole("button", { name: "Open camera" }).click();
+  await expect(page.getByText("CODE FOUND")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(".result-version")).toHaveText("V1");
+  await expect(page.getByRole("link", { name: "Open track" })).toHaveAttribute("href", SPOTIFY);
+});
