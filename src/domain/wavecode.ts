@@ -25,7 +25,7 @@ export interface GeneratedWaveCode {
 }
 
 export type ScanSource = "camera" | "image";
-export type ScanMode = "all" | "v2" | "v2-oblique";
+export type ScanMode = "all" | "v2" | "v2-oblique" | "v2-perspective" | "v2-anchor";
 
 export interface V2Geometry {
   payloadHeight: number;
