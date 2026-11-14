@@ -64,21 +64,26 @@ async function installClutteredCamera(page: Page, mark: Buffer, width: number): 
   }, { bytes: Array.from(mark), width });
 }
 
-for (const dual of [false, true]) {
-  test(`live mobile camera scans a cluttered photo containing V2 ${dual ? "Dual" : "Single"}`, async ({ page }, info) => {
+for (const fixture of [
+  { dual: false, width: 460 },
+  { dual: true, width: 400 },
+  { dual: false, width: 320 },
+  { dual: true, width: 340 },
+]) {
+  test(`live mobile camera scans V2 ${fixture.dual ? "Dual" : "Single"} at ${fixture.width}px amid clutter`, async ({ page }, info) => {
     test.skip(info.project.name !== "mobile-chromium", "Canvas camera capture only exercised in Chromium.");
     await page.goto("/");
-    const mark = await createMark(page, dual);
-    await installClutteredCamera(page, mark, dual ? 400 : 460);
+    const mark = await createMark(page, fixture.dual);
+    await installClutteredCamera(page, mark, fixture.width);
 
     const nav = page.getByRole("navigation", { name: "Primary navigation" });
     await nav.getByRole("button", { name: "Scan" }).click();
     await page.getByRole("button", { name: "Open camera" }).click();
 
-    await expect(page.getByText(dual ? "DUAL CODE FOUND" : "CODE FOUND"))
+    await expect(page.getByText(fixture.dual ? "DUAL CODE FOUND" : "CODE FOUND"))
       .toBeVisible({ timeout: 65_000 });
     await expect(page.locator(".result-version")).toHaveText("V2");
-    if (dual) {
+    if (fixture.dual) {
       await expect(page.getByRole("link", { name: "Open Deezer" })).toHaveAttribute("href", DEEZER);
       await expect(page.getByRole("link", { name: "Open TIDAL" })).toHaveAttribute("href", TIDAL);
     } else {
