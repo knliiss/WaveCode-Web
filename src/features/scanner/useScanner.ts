@@ -117,7 +117,7 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
         "lower", "finder", "upper", "full",
         "left", "finder", "right", "detail",
       ];
-      const mode = modes[iteration % modes.length]!;
+      const mode = iteration % 3 === 2 ? "full" : modes[iteration % modes.length]!;
 
       try {
         const frame = await captureFrame(video, mode);
