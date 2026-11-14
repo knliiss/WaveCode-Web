@@ -110,7 +110,7 @@ for (const fixture of [
   { dual: false, yaw: 0.48, tilt: 0.24 },
   { dual: true, yaw: -0.48, tilt: 0.25 },
 ]) {
-  test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with perspective`, async ({ page }, info) => {
+  test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with yaw ${fixture.yaw} tilt ${fixture.tilt}`, async ({ page }, info) => {
     test.skip(info.project.name !== "mobile-chromium", "Camera MediaStream injection is Chromium-only.");
     await page.goto("/");
     const mark = await createMark(page, fixture.dual);
