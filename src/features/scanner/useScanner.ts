@@ -122,21 +122,22 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
       try {
         const frame = await captureFrame(video, mode);
         if (cycleRef.current !== cycle) return;
-        // V2 is the primary camera target. The older V1 scan runs periodically
-        // rather than delaying the analysis of every live frame.
-        const scanMode = iteration % 5 === 4 ? "all" : "v2";
-        const detected = codeCandidates(await engine.scan(frame, scanMode));
+        // Check V2 quickly on ordinary frames, recover one perspective
+        // hypothesis periodically, and retain legacy V1 scanning.
+        const scanMode = iteration % 9 === 8 ? "all"
+          : iteration % 3 === 2 ? "v2-oblique" : "v2";
+        const candidate = Math.floor(iteration / 3) % 12;
+        const detected = codeCandidates(await engine.scan(frame, scanMode, candidate));
         if (cycleRef.current !== cycle) return;
         if (detected.length) {
           finish(detected, "camera");
           return;
         }
-        iteration += 1;
         setView((previous) => ({
           ...previous,
           attempts: iteration,
           status: iteration > 10
-            ? "Try moving closer or finding more even light."
+            ? "Keep the complete W and bars visible; angled codes are also supported."
             : "Looking for the two-rail WaveCode pattern…",
         }));
       } catch (error) {
@@ -146,8 +147,9 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
           setView((previous) => ({ ...previous, phase: "error", status: error.message }));
           return;
         }
-        // A bad camera frame is recoverable. Continue with the next frame.
+        // A bad camera frame is recoverable. Continue with the next mode.
       }
+      iteration += 1;
 
       const elapsed = performance.now() - started;
       await delay(Math.max(85, 330 - elapsed));
@@ -346,6 +348,16 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
         if (detected.length) {
           finish(detected, "image");
           return;
+        }
+        // A saved photo can tolerate extra analysis. Spread perspective
+        // hypotheses over the progressively overlapping crops.
+        for (const candidate of [(pass - 1) % 12, (pass + 5) % 12]) {
+          const oblique = codeCandidates(await engine.scan(bytes, "v2-oblique", candidate));
+          if (cycleRef.current !== cycle || !isMounted.current) return;
+          if (oblique.length) {
+            finish(oblique, "image");
+            return;
+          }
         }
       }
       setView((previous) => ({
