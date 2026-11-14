@@ -33,8 +33,9 @@ async function installAngledCamera(
   tilt: number,
   roll = 0,
   clutter = false,
+  pitch = 0,
 ): Promise<void> {
-  await page.evaluate(async ({ bytes, yaw, tilt, roll, clutter }) => {
+  await page.evaluate(async ({ bytes, yaw, tilt, roll, clutter, pitch }) => {
     const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "image/png" }));
     const image = new Image();
     try {
@@ -78,7 +79,7 @@ async function installAngledCamera(
           const dy = y - cy;
           const rx = dx * cos + dy * sin;
           const ry = dy * cos - dx * sin;
-          const divisor = 1 - yaw * rx / 1280;
+          const divisor = 1 - yaw * rx / 1280 - pitch * ry / 720;
           const sx = cx + rx / divisor;
           const sy = cy + (ry - tilt * rx) / divisor;
           let value = 242;
@@ -114,7 +115,7 @@ async function installAngledCamera(
     } finally {
       URL.revokeObjectURL(url);
     }
-  }, { bytes: Array.from(mark), yaw, tilt, roll, clutter });
+  }, { bytes: Array.from(mark), yaw, tilt, roll, clutter, pitch });
 }
 
 for (const fixture of [
@@ -125,12 +126,14 @@ for (const fixture of [
   { dual: false, yaw: 0.48, tilt: 0.17, roll: 0.39 },
   { dual: true, yaw: -0.48, tilt: -0.17, roll: -0.39 },
   { dual: false, yaw: 0.0, tilt: 0.0, roll: 0.0, clutter: true },
+  { dual: false, yaw: 0.32, tilt: 0.08, pitch: 0.42 },
+  { dual: true, yaw: -0.32, tilt: -0.08, pitch: -0.42 },
 ]) {
-  test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with yaw ${fixture.yaw} tilt ${fixture.tilt} roll ${fixture.roll ?? 0} clutter ${!!fixture.clutter}`, async ({ page }, info) => {
+  test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with yaw ${fixture.yaw} tilt ${fixture.tilt} roll ${fixture.roll ?? 0} pitch ${fixture.pitch ?? 0} clutter ${!!fixture.clutter}`, async ({ page }, info) => {
     test.skip(info.project.name !== "mobile-chromium", "Camera MediaStream injection is Chromium-only.");
     await page.goto("/");
     const mark = await createMark(page, fixture.dual);
-    await installAngledCamera(page, mark, fixture.yaw, fixture.tilt, fixture.roll ?? 0, fixture.clutter ?? false);
+    await installAngledCamera(page, mark, fixture.yaw, fixture.tilt, fixture.roll ?? 0, fixture.clutter ?? false, fixture.pitch ?? 0);
     const nav = page.getByRole("navigation", { name: "Primary navigation" });
     await nav.getByRole("button", { name: "Scan" }).click();
     await page.getByRole("button", { name: "Open camera" }).click();
