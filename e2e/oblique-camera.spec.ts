@@ -31,8 +31,10 @@ async function installAngledCamera(
   mark: Buffer,
   yaw: number,
   tilt: number,
+  roll = 0,
+  clutter = false,
 ): Promise<void> {
-  await page.evaluate(async ({ bytes, yaw, tilt }) => {
+  await page.evaluate(async ({ bytes, yaw, tilt, roll, clutter }) => {
     const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: "image/png" }));
     const image = new Image();
     try {
@@ -52,6 +54,13 @@ async function installAngledCamera(
         ctx.fillRect(x, 65, 6, 18);
         ctx.fillRect(x, 625, 6, 18);
       }
+      if (clutter) {
+        for (let index = 0; index < 520; index += 1) {
+          const x = 25 + index % 65 * 18;
+          const y = 20 + Math.floor(index / 65) * 22;
+          ctx.fillRect(x, y, 3, 3);
+        }
+      }
       const codeWidth = 690;
       const codeHeight = codeWidth * image.naturalHeight / image.naturalWidth;
       ctx.drawImage(image, (1280 - codeWidth) / 2, (720 - codeHeight) / 2, codeWidth, codeHeight);
@@ -59,15 +68,19 @@ async function installAngledCamera(
       const result = ctx.createImageData(1280, 720);
       const cx = 640;
       const cy = 360;
+      const sin = Math.sin(roll);
+      const cos = Math.cos(roll);
       const valueAt = (x: number, y: number) =>
         pixels.data[(y * 1280 + x) * 4]!;
       for (let y = 0; y < 720; y++) {
         for (let x = 0; x < 1280; x++) {
           const dx = x - cx;
           const dy = y - cy;
-          const divisor = 1 - yaw * dx / 1280;
-          const sx = cx + dx / divisor;
-          const sy = cy + (dy - tilt * dx) / divisor;
+          const rx = dx * cos + dy * sin;
+          const ry = dy * cos - dx * sin;
+          const divisor = 1 - yaw * rx / 1280;
+          const sx = cx + rx / divisor;
+          const sy = cy + (ry - tilt * rx) / divisor;
           let value = 242;
           if (sx >= 0 && sy >= 0 && sx < 1279 && sy < 719) {
             const ix = Math.floor(sx);
@@ -101,7 +114,7 @@ async function installAngledCamera(
     } finally {
       URL.revokeObjectURL(url);
     }
-  }, { bytes: Array.from(mark), yaw, tilt });
+  }, { bytes: Array.from(mark), yaw, tilt, roll, clutter });
 }
 
 for (const fixture of [
@@ -109,12 +122,15 @@ for (const fixture of [
   { dual: true, yaw: -0.65, tilt: -0.18 },
   { dual: false, yaw: 0.48, tilt: 0.24 },
   { dual: true, yaw: -0.48, tilt: 0.25 },
+  { dual: false, yaw: 0.48, tilt: 0.17, roll: 0.39 },
+  { dual: true, yaw: -0.48, tilt: -0.17, roll: -0.39 },
+  { dual: false, yaw: 0.0, tilt: 0.0, roll: 0.0, clutter: true },
 ]) {
-  test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with yaw ${fixture.yaw} tilt ${fixture.tilt}`, async ({ page }, info) => {
+  test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with yaw ${fixture.yaw} tilt ${fixture.tilt} roll ${fixture.roll ?? 0} clutter ${!!fixture.clutter}`, async ({ page }, info) => {
     test.skip(info.project.name !== "mobile-chromium", "Camera MediaStream injection is Chromium-only.");
     await page.goto("/");
     const mark = await createMark(page, fixture.dual);
-    await installAngledCamera(page, mark, fixture.yaw, fixture.tilt);
+    await installAngledCamera(page, mark, fixture.yaw, fixture.tilt, fixture.roll ?? 0, fixture.clutter ?? false);
     const nav = page.getByRole("navigation", { name: "Primary navigation" });
     await nav.getByRole("button", { name: "Scan" }).click();
     await page.getByRole("button", { name: "Open camera" }).click();
