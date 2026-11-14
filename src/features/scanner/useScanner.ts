@@ -342,13 +342,22 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
           finish(detected, "image");
           return;
         }
-        // A saved photo can tolerate extra analysis. Spread perspective
-        // hypotheses over the progressively overlapping crops.
+        // Use the inexpensive calibrated angles on each crop. Run the
+        // expensive W-fit only on selected representative photo regions,
+        // rather than repeating it twice on every unsuccessful crop.
         for (const candidate of [(pass - 1) % 12, (pass + 5) % 12]) {
-          const oblique = codeCandidates(await engine.scan(bytes, "v2-oblique", candidate));
+          const oblique = codeCandidates(await engine.scan(bytes, "v2-perspective", candidate));
           if (cycleRef.current !== cycle || !isMounted.current) return;
           if (oblique.length) {
             finish(oblique, "image");
+            return;
+          }
+        }
+        if (pass === 1 || pass === 2 || pass % 3 === 1) {
+          const recovered = codeCandidates(await engine.scan(bytes, "v2-anchor"));
+          if (cycleRef.current !== cycle || !isMounted.current) return;
+          if (recovered.length) {
+            finish(recovered, "image");
             return;
           }
         }
