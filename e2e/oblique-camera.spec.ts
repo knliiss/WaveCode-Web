@@ -107,6 +107,8 @@ async function installAngledCamera(
 for (const fixture of [
   { dual: false, yaw: 0.65, tilt: 0.18 },
   { dual: true, yaw: -0.65, tilt: -0.18 },
+  { dual: false, yaw: 0.48, tilt: 0.24 },
+  { dual: true, yaw: -0.48, tilt: 0.25 },
 ]) {
   test(`angled camera finds V2 ${fixture.dual ? "Dual" : "Single"} with perspective`, async ({ page }, info) => {
     test.skip(info.project.name !== "mobile-chromium", "Camera MediaStream injection is Chromium-only.");
