@@ -27,7 +27,7 @@ const scanCycle: ReadonlyArray<{ captureMode: CaptureMode; scanMode: ScanMode }>
   { scanMode: "v2-anchor", captureMode: "full" },
   { scanMode: "v2", captureMode: "detail" },
   { scanMode: "v2-perspective", captureMode: "full" },
-  { scanMode: "all", captureMode: "full" },
+  { scanMode: "all", captureMode: "finder" },
   { scanMode: "v2", captureMode: "finder" },
   { scanMode: "v2-perspective", captureMode: "full" },
   { scanMode: "v2", captureMode: "detail" },
