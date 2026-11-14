@@ -1,12 +1,6 @@
 import type { ScanMode } from "../../domain/wavecode";
 import type { CaptureMode } from "../../infrastructure/camera/frames";
 
-const captureModes: readonly CaptureMode[] = [
-  "finder", "detail", "finder", "full",
-  "lower", "finder", "upper", "full",
-  "left", "finder", "right", "detail",
-];
-
 const perspectiveCandidates = 12;
 const candidatesPerFrame = 2;
 
@@ -17,15 +11,39 @@ export interface CameraScanStep {
   nextCandidate: number;
 }
 
+// Prioritize fast, detail-preserving crops. The previous scheduler always
+// selected "full" for its perspective frames and almost never selected
+// "finder" for ordinary V2, downscaling small optical rails unnecessarily.
+// Expensive W geometry is intentionally periodic, not repeated every frame.
+const scanCycle: ReadonlyArray<{ captureMode: CaptureMode; scanMode: ScanMode }> = [
+  { scanMode: "all", captureMode: "full" },
+  { scanMode: "v2", captureMode: "finder" },
+  { scanMode: "v2-perspective", captureMode: "full" },
+  { scanMode: "v2", captureMode: "detail" },
+  { scanMode: "v2-perspective", captureMode: "finder" },
+  { scanMode: "v2", captureMode: "full" },
+  { scanMode: "v2-perspective", captureMode: "full" },
+  { scanMode: "v2", captureMode: "finder" },
+  { scanMode: "v2-anchor", captureMode: "full" },
+  { scanMode: "v2", captureMode: "detail" },
+  { scanMode: "v2-perspective", captureMode: "full" },
+  { scanMode: "all", captureMode: "full" },
+  { scanMode: "v2", captureMode: "finder" },
+  { scanMode: "v2-perspective", captureMode: "full" },
+  { scanMode: "v2", captureMode: "detail" },
+  { scanMode: "v2-perspective", captureMode: "finder" },
+  { scanMode: "v2", captureMode: "full" },
+  { scanMode: "v2-anchor", captureMode: "finder" },
+];
+
 export function cameraScanStep(iteration: number, nextCandidate: number): CameraScanStep {
-  const scanMode: ScanMode = iteration % 9 === 8 ? "all"
-    : iteration % 4 === 3 ? "v2" : "v2-oblique";
-  const oblique = scanMode === "v2-oblique";
+  const step = scanCycle[iteration % scanCycle.length]!;
+  const perspective = step.scanMode === "v2-perspective";
   return {
-    captureMode: oblique ? "full" : captureModes[iteration % captureModes.length]!,
-    scanMode,
-    candidate: oblique ? nextCandidate : 0,
-    nextCandidate: oblique
+    captureMode: step.captureMode,
+    scanMode: step.scanMode,
+    candidate: perspective ? nextCandidate : 0,
+    nextCandidate: perspective
       ? (nextCandidate + candidatesPerFrame) % perspectiveCandidates
       : nextCandidate,
   };
