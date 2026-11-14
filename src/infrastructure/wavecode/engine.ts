@@ -59,9 +59,9 @@ export class BrowserWaveCodeEngine implements WaveCodeEngine {
     return this.request<void>({ action: "initialize" });
   }
 
-  scan(image: Uint8Array, mode: ScanMode = "all"): Promise<LocatedWaveCode[]> {
+  scan(image: Uint8Array, mode: ScanMode = "all", candidate = 0): Promise<LocatedWaveCode[]> {
     const input = new Uint8Array(image);
-    return this.request<LocatedWaveCode[]>({ action: "scan", image: input, mode }, [input.buffer]);
+    return this.request<LocatedWaveCode[]>({ action: "scan", image: input, mode, candidate }, [input.buffer]);
   }
 
   generate(

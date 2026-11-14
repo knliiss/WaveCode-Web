@@ -117,26 +117,28 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
         "lower", "finder", "upper", "full",
         "left", "finder", "right", "detail",
       ];
-      const mode = modes[iteration % modes.length]!;
+      const scanMode = iteration % 9 === 8 ? "all"
+        : iteration < 2 || iteration % 2 === 0 ? "v2-oblique" : "v2";
+      const candidate = iteration < 2 ? iteration : (Math.floor(iteration / 2) + 1) % 12;
+      const mode = scanMode === "v2-oblique" ? "full" : modes[iteration % modes.length]!;
 
       try {
         const frame = await captureFrame(video, mode);
         if (cycleRef.current !== cycle) return;
-        // V2 is the primary camera target. The older V1 scan runs periodically
-        // rather than delaying the analysis of every live frame.
-        const scanMode = iteration % 5 === 4 ? "all" : "v2";
-        const detected = codeCandidates(await engine.scan(frame, scanMode));
+        // Favor oblique views immediately: both yaw directions are checked
+        // in the first two frames. Continue alternating fast checks with
+        // bounded perspective retries; V1 remains a periodic fallback.
+        const detected = codeCandidates(await engine.scan(frame, scanMode, candidate));
         if (cycleRef.current !== cycle) return;
         if (detected.length) {
           finish(detected, "camera");
           return;
         }
-        iteration += 1;
         setView((previous) => ({
           ...previous,
           attempts: iteration,
           status: iteration > 10
-            ? "Try moving closer or finding more even light."
+            ? "Keep the complete W and bars visible; angled codes are also supported."
             : "Looking for the two-rail WaveCode pattern…",
         }));
       } catch (error) {
@@ -146,8 +148,9 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
           setView((previous) => ({ ...previous, phase: "error", status: error.message }));
           return;
         }
-        // A bad camera frame is recoverable. Continue with the next frame.
+        // A bad camera frame is recoverable. Continue with the next mode.
       }
+      iteration += 1;
 
       const elapsed = performance.now() - started;
       await delay(Math.max(85, 330 - elapsed));
@@ -346,6 +349,16 @@ export function useScanner(engine: WaveCodeEngine, selected: boolean) {
         if (detected.length) {
           finish(detected, "image");
           return;
+        }
+        // A saved photo can tolerate extra analysis. Spread perspective
+        // hypotheses over the progressively overlapping crops.
+        for (const candidate of [(pass - 1) % 12, (pass + 5) % 12]) {
+          const oblique = codeCandidates(await engine.scan(bytes, "v2-oblique", candidate));
+          if (cycleRef.current !== cycle || !isMounted.current) return;
+          if (oblique.length) {
+            finish(oblique, "image");
+            return;
+          }
         }
       }
       setView((previous) => ({

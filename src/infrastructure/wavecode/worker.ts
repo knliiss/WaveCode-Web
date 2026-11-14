@@ -33,6 +33,7 @@ function wasmEngine(): Promise<WasmModule> {
     await wasm.default({ module_or_path: file.default });
     if (wasm.abi_version() !== 1 || wasm.format_version() !== 1 ||
       typeof wasm.v2_scan_image !== "function" ||
+      typeof wasm.v2_scan_image_oblique !== "function" ||
       typeof wasm.v2_encode_links !== "function") {
       throw new Error("WaveCode V2 SDK mismatch. Rebuild the pinned Rust SDK.");
     }
@@ -57,11 +58,19 @@ function v2Located(value: V2Decoded): LocatedWaveCode | null {
   };
 }
 
-function scan(wasm: WasmModule, image: Uint8Array, mode: ScanMode = "all"): LocatedWaveCode[] {
+function scan(
+  wasm: WasmModule,
+  image: Uint8Array,
+  mode: ScanMode = "all",
+  candidate = 0,
+): LocatedWaveCode[] {
   const found: LocatedWaveCode[] = [];
   try {
-    const candidate = v2Located(JSON.parse(wasm.v2_scan_image(image)) as V2Decoded);
-    if (candidate) found.push(candidate);
+    const result = mode === "v2-oblique"
+      ? wasm.v2_scan_image_oblique(image, candidate)
+      : wasm.v2_scan_image(image);
+    const located = v2Located(JSON.parse(result) as V2Decoded);
+    if (located) found.push(located);
   } catch {
     // V2 finder is opt-in: V1 frames are not V2 optical marks.
   }
@@ -116,7 +125,7 @@ context.onmessage = async (event: MessageEvent<EngineRequest>) => {
     if (request.action === "initialize") {
       value = true;
     } else if (request.action === "scan") {
-      value = scan(wasm, request.image, request.mode);
+      value = scan(wasm, request.image, request.mode, request.candidate);
     } else if (request.action === "generate-dual") {
       value = renderV2(
         wasm,
