@@ -35,6 +35,8 @@ function wasmEngine(): Promise<WasmModule> {
       typeof wasm.v2_scan_image !== "function" ||
       typeof wasm.v2_scan_image_oblique !== "function" ||
       typeof wasm.v2_scan_image_oblique_batch !== "function" ||
+      typeof wasm.v2_scan_image_oblique_fast !== "function" ||
+      typeof wasm.v2_scan_image_anchor !== "function" ||
       typeof wasm.v2_encode_links !== "function") {
       throw new Error("WaveCode V2 SDK mismatch. Rebuild the pinned Rust SDK.");
     }
@@ -67,9 +69,13 @@ function scan(
 ): LocatedWaveCode[] {
   const found: LocatedWaveCode[] = [];
   try {
-    const result = mode === "v2-oblique"
-      ? wasm.v2_scan_image_oblique_batch(image, candidate, 2)
-      : wasm.v2_scan_image(image);
+    const result = mode === "v2-perspective"
+      ? wasm.v2_scan_image_oblique_fast(image, candidate, 2)
+      : mode === "v2-anchor"
+        ? wasm.v2_scan_image_anchor(image)
+        : mode === "v2-oblique"
+          ? wasm.v2_scan_image_oblique_batch(image, candidate, 2)
+          : wasm.v2_scan_image(image);
     const located = v2Located(JSON.parse(result) as V2Decoded);
     if (located) found.push(located);
   } catch {
