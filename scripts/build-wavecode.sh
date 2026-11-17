@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE="$ROOT/.cache/wavecode"
 TARGET="$ROOT/src/generated/wavecode"
-WAVECODE_COMMIT="49e51c9d10a463740e57f2a959bf632d579604b4"
+WAVECODE_COMMIT="856e90f3652a4ed82f9ad3b20c457c017a923a8a"
 
 command -v git >/dev/null || { echo "git is required" >&2; exit 1; }
 command -v cargo >/dev/null || { echo "Rust is required: https://rustup.rs" >&2; exit 1; }
